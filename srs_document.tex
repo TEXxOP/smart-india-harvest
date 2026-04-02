@@ -1,0 +1,955 @@
+\documentclass[12pt,a4paper]{article}
+
+% ── Fonts & Encoding ──
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}  % Times New Roman for pdfLaTeX
+
+% ── Layout ──
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\setstretch{1.15}
+\usepackage{ragged2e}
+
+% ── Packages ──
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[explicit]{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+
+% ── Hyperlinks ──
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+% ── Header / Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{}
+\lhead{}
+\cfoot{\thepage}
+
+% ── Heading Formatting ──
+% Section (Main Heading): ALL CAPS, 14pt, Bold
+\titleformat{\section}[hang]
+  {\fontsize{14}{16}\selectfont\bfseries}
+  {\thesection}{1em}{\MakeUppercase{#1}}
+\titlespacing*{\section}{0pt}{18pt}{10pt}
+
+% Subsection (Sub-Heading): 12pt, Underline
+\titleformat{\subsection}[hang]
+  {\fontsize{12}{14}\selectfont}
+  {\thesubsection}{1em}{\underline{#1}}
+\titlespacing*{\subsection}{0pt}{14pt}{8pt}
+
+% Subsubsection
+\titleformat{\subsubsection}
+  {\fontsize{12}{14}\selectfont\itshape}
+  {\thesubsubsection}{1em}{#1}
+
+% ── Caption Formatting: 11pt ──
+\captionsetup{font={small}, labelfont={bf}, justification=centering}
+\DeclareCaptionFont{eleven}{\fontsize{11}{13}\selectfont}
+\captionsetup{font=eleven}
+
+% ── Table content helper: 10pt ──
+\newcommand{\tablefont}{\fontsize{10}{12}\selectfont}
+
+% ── Title ──
+\title{
+    \vspace{-1cm}
+    {\fontsize{14}{16}\selectfont\bfseries SOFTWARE REQUIREMENTS SPECIFICATION (SRS)}\\[0.3cm]
+    {\fontsize{14}{16}\selectfont Multilingual Intelligent Decision Support System for Farmers}\\[0.2cm]
+    {\fontsize{12}{14}\selectfont Version 1.0}
+}
+\author{Project Team}
+\date{\today}
+
+\begin{document}
+\justifying
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+% ============================================================
+% TABLE OF CONTENTS
+% ============================================================
+\tableofcontents
+\newpage
+
+% ============================================================
+% REVISION HISTORY
+% ============================================================
+\section*{REVISION HISTORY}
+\addcontentsline{toc}{section}{Revision History}
+
+{\tablefont
+\begin{tabular}{|l|l|l|p{7cm}|}
+\hline
+\textbf{Version} & \textbf{Date} & \textbf{Author} & \textbf{Description} \\
+\hline
+1.0 & March 2026 & Team & Initial SRS document covering all implemented and planned modules \\
+\hline
+\end{tabular}
+}
+
+\newpage
+
+% ============================================================
+% 1. INTRODUCTION
+% ============================================================
+\section{Introduction}
+
+\subsection{Purpose of the Project}
+
+Indian agriculture supports the livelihoods of over 58\% of the population, yet small and marginal farmers-who constitute 86\% of all landholdings-continue to face challenges such as delayed disease identification, suboptimal crop selection, lack of weather-responsive planning, and limited access to government welfare schemes. These factors collectively contribute to reduced yields and income instability.
+
+\textbf{Problem Statement:} There is a critical need for an accessible, intelligent, and multilingual mobile platform that brings AI-powered crop disease detection, data-driven crop recommendation, yield prediction, and real-time agricultural advisory to the fingertips of Indian farmers, particularly those with limited digital literacy.
+
+\textbf{Multilingual Intelligent Decision Support System for Farmers} addresses this gap by building an Agricultural Decision Support System (Multilingual Intelligent Decision Support System) that integrates:
+
+\begin{itemize}
+    \item \textbf{Crop Disease Detection} using a Vision Transformer (ViT) deep learning model capable of classifying 13 crop leaf diseases from photographs
+    \item \textbf{Crop Recommendation Engine} using Random Forest / XGBoost trained on soil, weather, and crop history data to suggest optimal crops
+    \item \textbf{Crop Yield Prediction} using Gradient Boosting Regression to forecast expected harvest quantities
+    \item \textbf{AI-Powered Chatbot} (Krishi Mitra) using Llama 3.3 70B via Groq API for real-time multilingual agricultural guidance
+    \item \textbf{Real-time Weather Integration} with 7-day forecasts and irrigation advisories via Open-Meteo API
+    \item \textbf{Government Scheme Directory} with verified data on PM-KISAN, KCC, PMFBY, PMKSY, PKVY, and eNAM
+    \item \textbf{Multilingual Interface} supporting Hindi, English, Punjabi, and 4 additional Indian languages
+\end{itemize}
+
+\textbf{Motivation:} While existing apps like Plantix and DeHaat address individual aspects, no single platform combines AI disease detection, crop recommendation, yield prediction, LLM chatbot, and government scheme information in multiple Indian languages within a lightweight mobile experience optimised for low-end Android devices.
+
+\subsection{Target Beneficiary}
+
+\begin{itemize}
+    \item \textbf{Small and Marginal Farmers} - Primary users who need accessible, low-cost, language-friendly agricultural advisory on their smartphones
+    \item \textbf{Agricultural Extension Workers} - Can use the app to demonstrate disease detection to farmer groups and reference scheme eligibility in the field
+    \item \textbf{Farmer Producer Organizations (FPOs)} - For collective crop planning, knowledge sharing, and success story documentation
+    \item \textbf{Krishi Vigyan Kendras (KVKs)} - As a digital supplement to hands-on farmer training programmes
+    \item \textbf{State Agriculture Departments} - Can leverage the platform for disseminating scheme information at scale
+\end{itemize}
+
+\subsection{Project Scope}
+
+\textbf{Area of Application:} The software is a mobile-first agricultural advisory platform for Indian farmers. It operates in the intersection of precision agriculture, artificial intelligence, and rural digital empowerment.
+
+\textbf{Objectives and Goals:}
+\begin{enumerate}
+    \item Reduce crop loss due to undetected diseases by providing instant AI-based diagnosis from leaf photos
+    \item Improve crop selection decisions through data-driven recommendations based on soil and climate
+    \item Provide yield estimates to help farmers plan storage, transportation, and market timing
+    \item Break language barriers by offering the complete interface in 7 Indian languages
+    \item Increase awareness of government welfare schemes through verified, easy-to-understand summaries
+\end{enumerate}
+
+\textbf{Requirements and Deliverables:}
+\begin{itemize}
+    \item A cross-platform mobile application (React Native / Expo) deployable on Android and iOS
+    \item A FastAPI backend with PostgreSQL database for user management and farm profiles
+    \item Three ML models: disease detection (ViT), crop recommendation (Random Forest), yield prediction (Gradient Boosting)
+    \item Integration with Groq LLM API, Open-Meteo Weather API, and Google Geocoding API
+    \item Offline-capable translation system with server-side dynamic translation and local caching
+    \item User authentication with input validation (10-digit mobile, 6-character password)
+\end{itemize}
+
+\textbf{Out of Scope (v1.0):} IoT sensor integration, real-time mandi price feeds, e-commerce/trading.
+
+\subsection{References}
+
+\begin{enumerate}
+    \item IEEE Std 830-1998 - IEEE Recommended Practice for Software Requirements Specifications
+    \item React Native Documentation - \url{https://reactnative.dev/docs}
+    \item FastAPI Documentation - \url{https://fastapi.tiangolo.com}
+    \item HuggingFace Model Card - \texttt{wambugu71/crop\_leaf\_diseases\_vit}
+    \item Open-Meteo Weather API - \url{https://open-meteo.com}
+    \item Groq API Documentation - \url{https://console.groq.com/docs}
+    \item PM-KISAN Official Portal - \url{https://pmkisan.gov.in}
+    \item Indian Crop Recommendation Dataset - Kaggle
+    \item India Agriculture Yield Dataset - data.gov.in
+\end{enumerate}
+
+% ============================================================
+% 2. PROJECT DESCRIPTION
+% ============================================================
+\section{Project Description}
+
+\subsection{Reference Algorithm}
+
+\subsubsection{Crop Disease Detection - Vision Transformer (ViT)}
+The disease detection module uses a pre-trained \textbf{Vision Transformer (ViT)} architecture fine-tuned on crop leaf disease images. The model (\texttt{wambugu71/crop\_leaf\_diseases\_vit}) classifies leaf images into 13 disease categories with confidence scores.
+
+\textbf{Algorithm Justification:} ViT outperforms traditional CNNs (ResNet, VGG) on image classification tasks by capturing global spatial relationships through self-attention mechanisms. For crop disease detection, this is critical because disease symptoms (spots, discolouration, wilting patterns) often have spatial distributions across the entire leaf that local convolutional filters may miss.
+
+\textbf{Pipeline:}
+\begin{enumerate}
+    \item User captures or uploads a leaf image via the mobile camera
+    \item Image is transmitted to the FastAPI backend as a multipart upload
+    \item Backend preprocesses the image using \texttt{ViTImageProcessor} (resize, normalise)
+    \item The ViT model produces logits, converted to probabilities via softmax
+    \item Top-5 predictions with confidence scores are returned to the mobile app
+\end{enumerate}
+
+\textbf{Required Data Structure:} Input tensor of shape \texttt{[1, 3, 224, 224]} (batch, channels, height, width). Output logit vector of size 13. The \texttt{id2label} mapping converts class indices to human-readable disease names.
+
+\subsubsection{Crop Recommendation - Random Forest / XGBoost}
+The crop recommendation engine uses a \textbf{Random Forest Classifier} (or XGBoost) trained on the Indian Crop Recommendation Dataset to predict the most suitable crops given soil and environmental parameters.
+
+\textbf{Algorithm Justification:} Random Forest is robust against overfitting, handles mixed feature types (numerical soil values + categorical soil type), and provides feature importance rankings. XGBoost offers superior accuracy through gradient boosting with regularisation.
+
+\textbf{Input Features:}
+\begin{itemize}
+    \item Soil type (clay, loam, sandy, black, red)
+    \item NPK values (Nitrogen, Phosphorus, Potassium) from Soil Health Card
+    \item Soil pH level
+    \item Temperature, humidity, and rainfall data from the weather API
+    \item Previous crop grown (for rotation awareness)
+\end{itemize}
+
+\textbf{Output:} Top 3-5 suitable crops with suitability scores (probability).
+
+\subsubsection{Crop Yield Prediction - Gradient Boosting Regressor}
+The yield prediction module uses a \textbf{Gradient Boosting Regressor} trained on historical Indian agriculture yield data.
+
+\textbf{Input Features:} Crop type, land area (hectares), soil pH, organic carbon content, season-average temperature, total rainfall, fertiliser application rates (N, P, K).
+
+\textbf{Output:} Predicted yield in quintals per hectare with a confidence interval.
+
+\subsubsection{AI Chatbot - LLM via Groq API}
+The chatbot uses the \textbf{Llama 3.3 70B Versatile} model via the Groq API with:
+\begin{itemize}
+    \item A system prompt enforcing agricultural domain focus and language compliance
+    \item Dynamic language detection - responds entirely in the user's selected language (Hindi, Punjabi, English)
+    \item Live weather context injection for location-aware, season-relevant advice
+    \item Markdown stripping for clean mobile display
+\end{itemize}
+
+\textbf{Methodology Justification:} Using a hosted LLM via API eliminates the need for on-device model storage ($\sim$40GB for a 70B model), making the solution viable for low-end smartphones. Groq's inference speed ($<$2s first token) ensures a conversational experience.
+
+\subsection{Characteristic of Data}
+
+This section outlines the primary data sources, secondary data sources, sampling techniques, and statistical methods utilized within the Smart India Harvest system.
+
+
+\subsubsection{Primary Data Sources}
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{5.5cm}|}
+\hline
+\textbf{Dataset} & \textbf{Source} & \textbf{Characteristics} \\
+\hline
+Crop Leaf Disease Images & HuggingFace (wambugu71) & 13 classes, RGB images, 224$\times$224, $\sim$10,000 samples \\
+\hline
+Indian Crop Recommendation & Kaggle & 2,200 samples, 7 features (N, P, K, temperature, humidity, pH, rainfall), 22 crop labels \\
+\hline
+India Agriculture Yield & data.gov.in & State-wise, crop-wise, season-wise yield data spanning 1997-2020 \\
+\hline
+Weather Data & Open-Meteo API & Real-time hourly/daily forecasts, 7-day, global coverage, no API key needed \\
+\hline
+Government Schemes & Official govt portals & Manually curated and verified data on 6 major schemes \\
+\hline
+\end{tabular}
+\caption{Primary data sources and their characteristics}
+\end{table}
+
+\subsubsection{Secondary Data Sources}
+\begin{itemize}
+    \item User-generated success stories (stored in AsyncStorage)
+    \item User farm profiles (soil type, previous crop, land area) collected during onboarding
+    \item Cached translation strings fetched from the backend API
+\end{itemize}
+
+\subsubsection{Sampling Techniques}
+\begin{itemize}
+    \item \textbf{Disease Detection}: Stratified sampling ensuring balanced representation across all 13 disease classes during model training
+    \item \textbf{Crop Recommendation}: Dataset already balanced across 22 crops with 100 samples each
+    \item \textbf{Yield Prediction}: Time-series data aggregated at state-crop-season level; train-test split uses temporal holdout (2015-2020 as test set)
+\end{itemize}
+
+\subsubsection{Statistical Methods for Data Processing}
+\begin{itemize}
+    \item \textbf{Image Preprocessing}: Resize to 224$\times$224, normalise pixel values to [0, 1] using ImageNet mean/std
+    \item \textbf{Feature Scaling}: Min-Max normalisation for NPK values and Standard Scaling for temperature/rainfall
+    \item \textbf{Softmax}: Applied to ViT output logits to convert to class probabilities
+    \item \textbf{Confidence Interval}: Yield prediction uses bootstrapped prediction intervals (5th--95th percentile)
+\end{itemize}
+
+\subsection{SWOT Analysis}
+
+{\tablefont
+\begin{tabular}{|p{6cm}|p{6cm}|}
+\hline
+\textbf{Strengths} & \textbf{Weaknesses} \\
+\hline
+\begin{itemize}[leftmargin=*, nosep]
+    \item 7-language multilingual support covering major Hindi belt and Punjab
+    \item AI-powered disease detection with 13 crop disease classes
+    \item Real-time weather integration with 7-day forecast
+    \item Offline-capable translation caching for areas with poor connectivity
+    \item Lightweight app - works on Android 8.0+ with 2GB RAM
+    \item Verified government scheme data with official portal links
+\end{itemize}
+&
+\begin{itemize}[leftmargin=*, nosep]
+    \item Requires internet for AI chatbot and weather features
+    \item Disease model currently limited to 13 crop diseases
+    \item No IoT sensor integration in v1.0
+    \item Local-only authentication (no cloud sync or OAuth)
+    \item Crop recommendation and yield prediction models still in training phase
+\end{itemize}
+\\
+\hline
+\textbf{Opportunities} & \textbf{Threats} \\
+\hline
+\begin{itemize}[leftmargin=*, nosep]
+    \item Expand disease classes to 38+ crops with larger datasets
+    \item Integration with eNAM for real-time market prices
+    \item IoT soil moisture sensors for precision irrigation
+    \item Government partnerships (NIC, NABARD) for rural deployment
+    \item Voice input feature for farmers who cannot type
+\end{itemize}
+&
+\begin{itemize}[leftmargin=*, nosep]
+    \item Poor network coverage in remote rural areas
+    \item Digital literacy barriers among older generation farmers
+    \item Competition from well-funded apps like Plantix, DeHaat, BharatAgri
+    \item API rate limits on free-tier services (Groq, Open-Meteo)
+    \item Changing government policies requiring frequent content updates
+\end{itemize}
+\\
+\hline
+\end{tabular}
+}
+\captionof{table}{SWOT Analysis of Multilingual Intelligent Decision Support System for Farmers}
+
+\subsection{Project Features}
+
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|c|p{3.5cm}|p{7.5cm}|}
+\hline
+\textbf{ID} & \textbf{Feature} & \textbf{Description} \\
+\hline
+F01 & Language Selection & Choose from 7 Indian languages at app launch; persisted for future sessions \\
+F02 & User Authentication & Sign up / login with 10-digit mobile + 6-character password validation; AsyncStorage persistence \\
+F03 & Crop Disease Detection & Capture or upload leaf photo; get AI-powered diagnosis with top-5 predictions and confidence scores \\
+F04 & Crop Recommendation & Input soil and weather parameters; receive top 3-5 suitable crops with suitability scores \\
+F05 & Yield Prediction & Estimate expected harvest quantity based on crop, soil, and weather parameters \\
+F06 & AI Chatbot (Krishi Mitra) & Ask farming questions in any supported language; receive LLM-powered responses with weather context \\
+F07 & Weather Dashboard & 7-day forecast, 24-hour hourly data, sunrise/sunset, humidity, wind speed, and feels-like temperature \\
+F08 & My Crops (Fasalein) & Track current crops, soil details, growth stage, and get tailored recommendations \\
+F09 & Government Schemes & Browse PM-KISAN, KCC, PMFBY, PMKSY, PKVY, eNAM with benefits, eligibility, and official links \\
+F10 & Agricultural Knowledge & Verified farming tips on soil preparation, crop rotation, water management, IPM, organic farming \\
+F11 & Success Stories & Read and share farmer success stories in user's language; local storage for user-submitted stories \\
+F12 & User Profile & View profile details, farm summary, quick links, language preference, and logout \\
+\hline
+\end{tabular}
+\caption{Project Features Summary}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    actor/.style={circle, draw, fill=green!10, minimum size=0.8cm, font=\footnotesize},
+    usecase/.style={ellipse, draw, fill=blue!5, minimum width=3cm, minimum height=0.8cm, align=center, font=\footnotesize},
+    arrow/.style={-{Stealth}, thick}
+]
+    % System boundary
+    \draw[rounded corners, thick, dashed] (1.5,-0.5) rectangle (10,8.5);
+    \node[font=\small\bfseries] at (5.75,8.1) {Multilingual Intelligent DSS};
+
+    % Actor
+    \node[actor] (farmer) at (0,4) {F};
+    \node[font=\footnotesize, below=0.1cm of farmer] {Farmer};
+
+    % Use Cases
+    \node[usecase] (uc1) at (4,7.5) {Select Language};
+    \node[usecase] (uc2) at (4,6.5) {Sign Up / Login};
+    \node[usecase] (uc3) at (4,5.5) {Detect Disease};
+    \node[usecase] (uc4) at (4,4.5) {Get Crop Advice};
+    \node[usecase] (uc5) at (4,3.5) {Predict Yield};
+    \node[usecase] (uc6) at (8,7.5) {Chat with AI};
+    \node[usecase] (uc7) at (8,6.5) {View Weather};
+    \node[usecase] (uc8) at (8,5.5) {Manage Crops};
+    \node[usecase] (uc9) at (8,4.5) {Browse Schemes};
+    \node[usecase] (uc10) at (8,3.5) {Read Knowledge};
+    \node[usecase] (uc11) at (6,1) {Share Story};
+    \node[usecase] (uc12) at (6,2) {View Profile};
+
+    % Connections
+    \draw[arrow] (farmer) -- (uc1);
+    \draw[arrow] (farmer) -- (uc2);
+    \draw[arrow] (farmer) -- (uc3);
+    \draw[arrow] (farmer) -- (uc4);
+    \draw[arrow] (farmer) -- (uc5);
+    \draw[arrow] (farmer) -- (uc6);
+    \draw[arrow] (farmer) -- (uc7);
+    \draw[arrow] (farmer) -- (uc8);
+    \draw[arrow] (farmer) -- (uc9);
+    \draw[arrow] (farmer) -- (uc10);
+    \draw[arrow] (farmer) -- (uc11);
+    \draw[arrow] (farmer) -- (uc12);
+\end{tikzpicture}
+\caption{Level 2 Use Case Diagram - Multilingual Intelligent Decision Support System for Farmers}
+\label{fig:usecase}
+    \vspace{0.2cm}
+    \textit{Source: Author\'s own design}
+\end{figure}
+
+\subsection{User Classes and Characteristics}
+
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|p{3cm}|p{2.5cm}|p{3cm}|p{3.5cm}|}
+\hline
+\textbf{User Class} & \textbf{Tech Level} & \textbf{Frequency} & \textbf{Usage Pattern} \\
+\hline
+Small Farmer & Low - Medium & Daily & Weather checks, chatbot queries, seasonal disease detection \\
+Progressive Farmer & Medium - High & Daily & Full feature usage including yield prediction and crop recommendations \\
+Extension Worker & High & Weekly & Demonstrates disease detection to farmer groups; references scheme info \\
+Farm Manager & High & Daily & Multi-crop tracking, yield estimation, data-driven decision making \\
+\hline
+\end{tabular}
+\caption{User Classes and Characteristics}
+\end{table}
+
+\subsection{Design and Implementation Constraints}
+
+\textbf{Hardware Constraints:}
+\begin{itemize}
+    \item Minimum target device: Android 8.0+ with 2GB RAM, 5-inch screen
+    \item Camera: minimum 5MP for acceptable disease detection accuracy
+    \item Backend server: requires $\sim$400MB RAM for ViT model loading
+\end{itemize}
+
+\textbf{Software Constraints:}
+\begin{itemize}
+    \item \textbf{Expo Go compatibility}: No native modules requiring custom development builds
+    \item \textbf{Programming Languages}: TypeScript (frontend), Python 3.10+ (backend)
+    \item \textbf{Frameworks}: React Native + Expo SDK 54 (mobile), FastAPI (backend)
+    \item \textbf{Database}: PostgreSQL 14+ via SQLAlchemy / SQLModel ORM
+\end{itemize}
+
+\textbf{Communication Protocols:}
+\begin{itemize}
+    \item All external API calls over HTTPS
+    \item REST API architecture with JSON payloads
+    \item Multipart/form-data for image uploads
+    \item Bearer token authentication for Groq API
+    \item CORS policy: \texttt{allow\_origins=["*"]} for mobile app access
+\end{itemize}
+
+\textbf{Security Considerations:}
+\begin{itemize}
+    \item Passwords stored locally via AsyncStorage (v1.0); future: bcrypt + JWT
+    \item API keys stored in source code (v1.0); future: environment variables
+    \item No user data transmitted to third parties
+\end{itemize}
+
+\textbf{Design Standards:}
+\begin{itemize}
+    \item Component-based architecture with separate service files
+    \item Strict TypeScript typing for all interfaces
+    \item Translation keys for all user-facing strings (no hardcoded text)
+\end{itemize}
+
+\subsection{Design Diagrams}
+
+\subsubsection{System Architecture Diagram}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 2.5cm,
+    block/.style={rectangle, draw, rounded corners, fill=green!10, minimum width=3cm, minimum height=1cm, align=center, font=\small},
+    api/.style={rectangle, draw, rounded corners, fill=blue!10, minimum width=3cm, minimum height=1cm, align=center, font=\small},
+    db/.style={cylinder, draw, fill=orange!10, minimum width=2cm, minimum height=1.2cm, shape border rotate=90, aspect=0.3, align=center, font=\small},
+    arrow/.style={-{Stealth}, thick}
+]
+    \node[block] (app) {Mobile App\\(React Native)};
+    \node[block, right=of app] (backend) {FastAPI\\Backend};
+    \node[db, right=of backend] (db) {PostgreSQL};
+    \node[api, above=of backend] (groq) {Groq LLM\\API};
+    \node[api, below=of backend] (weather) {Open-Meteo\\Weather API};
+    \node[block, below=of app] (storage) {AsyncStorage\\(Local)};
+    \node[block, above=of app] (vit) {ViT Disease\\Model};
+    
+    \draw[arrow] (app) -- node[above, font=\tiny]{REST API} (backend);
+    \draw[arrow] (backend) -- node[above, font=\tiny]{SQL} (db);
+    \draw[arrow] (backend) -- node[right, font=\tiny]{HTTPS} (groq);
+    \draw[arrow] (app) -- node[right, font=\tiny]{HTTPS} (weather);
+    \draw[arrow] (app) -- node[right, font=\tiny]{Key-Value} (storage);
+    \draw[arrow] (backend) -- node[right, font=\tiny]{PyTorch} (vit);
+\end{tikzpicture}
+\caption{System Architecture Diagram}
+\label{fig:architecture}
+    \vspace{0.2cm}
+    \textit{Source: Author\'s own design}
+\end{figure}
+
+\subsubsection{Activity Diagram - Disease Detection Flow}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.7cm,
+    block/.style={rectangle, draw, rounded corners, fill=green!8, minimum width=3.5cm, minimum height=0.6cm, align=center, font=\footnotesize},
+    decision/.style={diamond, draw, fill=yellow!10, minimum width=1.5cm, minimum height=0.8cm, align=center, font=\footnotesize, aspect=2},
+    startend/.style={circle, draw, fill=black, minimum size=0.4cm},
+    arrow/.style={-{Stealth}, thick}
+]
+    \node[startend] (start) {};
+    \node[block, below=of start] (open) {Open Disease Detection};
+    \node[decision, below=of open] (choice) {Camera or Gallery?};
+    \node[block, below left=0.6cm and 1cm of choice] (camera) {Capture Photo};
+    \node[block, below right=0.6cm and 1cm of choice] (gallery) {Select from Gallery};
+    \node[block, below=1.5cm of choice] (upload) {Upload to Backend};
+    \node[block, below=of upload] (process) {ViT Model Inference};
+    \node[block, below=of process] (result) {Display Top-5 Results};
+    \node[startend, below=of result] (end) {};
+    
+    \draw[arrow] (start) -- (open);
+    \draw[arrow] (open) -- (choice);
+    \draw[arrow] (choice) -| node[above left, font=\tiny]{Camera} (camera);
+    \draw[arrow] (choice) -| node[above right, font=\tiny]{Gallery} (gallery);
+    \draw[arrow] (camera) |- (upload);
+    \draw[arrow] (gallery) |- (upload);
+    \draw[arrow] (upload) -- (process);
+    \draw[arrow] (process) -- (result);
+    \draw[arrow] (result) -- (end);
+\end{tikzpicture}
+\caption{Activity Diagram - Disease Detection Flow}
+\label{fig:activity}
+    \vspace{0.2cm}
+    \textit{Source: Author\'s own design}
+\end{figure}
+
+\subsubsection{Sequence Diagram - AI Chatbot Interaction}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\footnotesize
+]
+    % Lifelines
+    \node (user) at (0,0) {\textbf{User}};
+    \node (app) at (3.5,0) {\textbf{Mobile App}};
+    \node (groq) at (7,0) {\textbf{Groq API}};
+    \node (weather) at (10.5,0) {\textbf{Weather API}};
+    
+    \draw[dashed] (0,-0.3) -- (0,-6);
+    \draw[dashed] (3.5,-0.3) -- (3.5,-6);
+    \draw[dashed] (7,-0.3) -- (7,-6);
+    \draw[dashed] (10.5,-0.3) -- (10.5,-6);
+    
+    % Messages
+    \draw[-{Stealth}] (0,-1) -- (3.5,-1) node[midway, above, font=\tiny] {Type question};
+    \draw[-{Stealth}] (3.5,-1.8) -- (10.5,-1.8) node[midway, above, font=\tiny] {Fetch weather context};
+    \draw[{Stealth}-] (3.5,-2.4) -- (10.5,-2.4) node[midway, above, font=\tiny] {Weather data};
+    \draw[-{Stealth}] (3.5,-3.2) -- (7,-3.2) node[midway, above, font=\tiny] {Send message + context};
+    \draw[{Stealth}-] (3.5,-4) -- (7,-4) node[midway, above, font=\tiny] {LLM response};
+    \draw[-{Stealth}] (3.5,-4.8) -- (0,-4.8) node[midway, above, font=\tiny] {Display response};
+\end{tikzpicture}
+\caption{Sequence Diagram - AI Chatbot Interaction}
+\label{fig:sequence}
+    \vspace{0.2cm}
+    \textit{Source: Author\'s own design}
+\end{figure}
+
+\subsubsection{Data Flow Diagram - Level 0}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1cm and 2cm,
+    process/.style={circle, draw, fill=green!10, minimum size=2cm, align=center, font=\footnotesize},
+    entity/.style={rectangle, draw, fill=blue!5, minimum width=2.5cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    store/.style={rectangle, draw, fill=orange!5, minimum width=2.5cm, minimum height=0.7cm, align=center, font=\footnotesize, text width=2.3cm},
+    arrow/.style={-{Stealth}, thick}
+]
+    \node[entity] (farmer) at (0,0) {Farmer};
+    \node[process] (system) at (5,0) {Smart India\\Harvest};
+    \node[entity] (weather_api) at (10,2) {Weather API};
+    \node[entity] (groq_api) at (10,0) {Groq LLM};
+    \node[store] (db) at (10,-2) {PostgreSQL\\Database};
+    
+    \draw[arrow] (farmer) -- node[above, font=\tiny]{Leaf image, queries, profile} (system);
+    \draw[arrow] (system) -- node[below, font=\tiny]{Predictions, advice, schemes} (farmer);
+    \draw[arrow] (system) -- node[above, font=\tiny]{Location} (weather_api);
+    \draw[arrow] (weather_api) -- node[below, font=\tiny]{Forecast data} (system);
+    \draw[arrow] (system) -- node[above, font=\tiny]{Prompt} (groq_api);
+    \draw[arrow] (groq_api) -- node[below, font=\tiny]{Response} (system);
+    \draw[arrow] (system) -- node[right, font=\tiny]{Profile data} (db);
+\end{tikzpicture}
+\caption{Data Flow Diagram - Level 0 (Context Diagram)}
+\label{fig:dfd}
+    \vspace{0.2cm}
+    \textit{Source: Author\'s own design}
+\end{figure}
+
+\subsubsection{State Diagram - User Session}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    state/.style={rectangle, draw, rounded corners, fill=green!8, minimum width=2.5cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    startend/.style={circle, draw, fill=black, minimum size=0.3cm},
+    arrow/.style={-{Stealth}, thick}
+]
+    \node[startend] (start) {};
+    \node[state, right=of start] (lang) {Language\\Selection};
+    \node[state, right=of lang] (auth) {Authentication};
+    \node[state, right=of auth] (home) {Home\\Dashboard};
+    \node[state, below=of home] (feature) {Feature\\Screen};
+    \node[state, below=of auth] (logout) {Logged Out};
+    
+    \draw[arrow] (start) -- (lang);
+    \draw[arrow] (lang) -- node[above, font=\tiny]{Selected} (auth);
+    \draw[arrow] (auth) -- node[above, font=\tiny]{Success} (home);
+    \draw[arrow] (home) -- node[right, font=\tiny]{Navigate} (feature);
+    \draw[arrow] (feature) -- node[left, font=\tiny]{Back} (home);
+    \draw[arrow] (home) -- node[above, font=\tiny]{Logout} (logout);
+    \draw[arrow] (logout) -- node[left, font=\tiny]{Restart} (lang);
+\end{tikzpicture}
+\caption{State Diagram - User Session Lifecycle}
+\label{fig:state}
+    \vspace{0.2cm}
+    \textit{Source: Author\'s own design}
+\end{figure}
+
+\subsection{Assumptions and Dependencies}
+
+\textbf{Assumptions:}
+\begin{itemize}
+    \item Users possess an Android smartphone (5-inch+) with a working camera of at least 5MP resolution
+    \item Internet connectivity is available (at least 2G/3G) for initial setup, AI chatbot, and weather features
+    \item Users can read in at least one of the 7 supported Indian languages
+    \item Leaf images captured will be of reasonable quality, focus, and framing for disease detection
+    \item Government scheme data is current as of March 2026 and may require periodic updates
+\end{itemize}
+
+\textbf{Dependencies:}
+\begin{itemize}
+    \item \textbf{Expo SDK 54} - React Native build toolchain and development environment
+    \item \textbf{FastAPI 0.100+} with Python 3.10+ runtime
+    \item \textbf{PostgreSQL 14+} for persistent server-side storage
+    \item \textbf{HuggingFace Transformers 4.x} - ViT model loading and inference
+    \item \textbf{Groq API} - LLM chatbot responses (requires valid API key; free tier: 30 RPM)
+    \item \textbf{Open-Meteo API} - Free weather data (no API key required; rate limit: 10,000 calls/day)
+    \item \textbf{PyTorch 2.x} - Deep learning inference engine for the ViT model
+\end{itemize}
+
+% ============================================================
+% 3. SYSTEM REQUIREMENTS
+% ============================================================
+\section{System Requirements}
+
+\subsection{User Interface}
+
+The following screens require user interface components:
+
+\begin{itemize}
+    \item \textbf{Language Selection Screen}: 7-language radio-button list with a prominent ``Continue'' button; flags or script previews for each language
+    \item \textbf{Sign Up Screen}: Three form fields (name, 10-digit mobile, 6-char password) with inline red validation errors below each field
+    \item \textbf{Login Screen}: Two form fields (mobile, password) with identical validation behaviour
+    \item \textbf{Home Dashboard}: Gradient green header with dynamic greeting (based on time of day), weather card, 4 feature cards (Weather, Crop Recommendation, AI Chat, Disease Detection), scrollable list items for secondary features
+    \item \textbf{Bottom Tab Bar}: 5 tabs - Home, My Crops, Camera (Disease Detection with elevated green button), Chat, Profile
+    \item \textbf{Disease Detection}: Camera/gallery picker, image preview, analysis progress indicator, results card with confidence bars
+    \item \textbf{AI Chatbot}: WhatsApp-style messaging interface with bot avatar, typing indicator, quick-prompt chips
+    \item \textbf{Weather Dashboard}: Current conditions card, 24-hour horizontal scroll, 7-day forecast cards
+    \item \textbf{Government Schemes}: Card list with colour-coded left border, benefit highlights, ``Learn More'' buttons linking to official sites
+    \item \textbf{Agricultural Knowledge}: Card list with emoji icons, title, and expandable description paragraphs
+    \item \textbf{Profile}: Green gradient profile card with avatar initial, menu items, logout button
+\end{itemize}
+
+All screens use \texttt{SafeAreaView} for notch/status bar handling. Minimum touch target is 44$\times$44 dp. Font sizes range from 13sp (captions) to 22sp (headings).
+
+\subsection{Software Interface}
+
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|p{3cm}|p{2.5cm}|p{2cm}|p{4.5cm}|}
+\hline
+\textbf{Interface} & \textbf{Protocol} & \textbf{Format} & \textbf{Purpose} \\
+\hline
+FastAPI Backend & HTTP REST & JSON & User auth, farm profile CRUD, disease detection, translation serving \\
+\hline
+Groq API & HTTPS REST & JSON & LLM chat completions (OpenAI-compatible \texttt{/v1/chat/completions} endpoint) \\
+\hline
+Open-Meteo API & HTTPS REST & JSON & Weather forecasts (hourly, daily), geocoding (lat/lon to city name) \\
+\hline
+AsyncStorage & Local KV & JSON & Offline data persistence for user data, translations, and stories \\
+\hline
+\end{tabular}
+\caption{Software Interface Specifications}
+\end{table}
+
+\textbf{API Endpoint Summary:}
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|l|l|p{5cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Description} \\
+\hline
+GET & \texttt{/api/health} & Server health check; returns model loading status \\
+POST & \texttt{/api/detect-disease} & Upload leaf image; returns top-5 disease predictions \\
+POST & \texttt{/api/onboarding} & Save/update farm profile \\
+GET & \texttt{/api/farm-profile/\{user\_id\}} & Retrieve farm profile \\
+GET & \texttt{/api/translations/\{lang\}} & Get UI translations for specified language \\
+GET & \texttt{/api/model-labels} & Get list of all disease classes \\
+\hline
+\end{tabular}
+\caption{Backend API Endpoints}
+\end{table}
+
+\subsection{Database Interface}
+
+\begin{itemize}
+    \item \textbf{DBMS}: PostgreSQL 14+ (relational, ACID-compliant)
+    \item \textbf{ORM}: SQLModel (built on SQLAlchemy + Pydantic) for type-safe database operations
+    \item \textbf{Connection}: Standard \texttt{postgresql://user:pass@host/db} connection string via \texttt{create\_engine()}
+    \item \textbf{Schema Management}: Automatic table creation via \texttt{SQLModel.metadata.create\_all()} at server startup
+    \item \textbf{Connection Pooling}: Default SQLAlchemy pool with 5 connections, 10 max overflow
+\end{itemize}
+
+\textbf{Table Schema:}
+
+{\tablefont
+\begin{tabular}{|l|l|l|p{4.5cm}|}
+\hline
+\textbf{Column} & \textbf{Type} & \textbf{Constraint} & \textbf{Description} \\
+\hline
+id & Integer & Primary Key, Auto & Unique row identifier \\
+user\_id & String & Unique, Not Null & User's mobile number \\
+land\_size & Float & Not Null & Farm land area \\
+land\_unit & String & Not Null & Unit (acres/hectares/bigha) \\
+soil\_type & String & Not Null & Soil classification \\
+previous\_crop & String & Nullable & Last crop grown \\
+current\_status & String & Not Null & growing / empty \\
+\hline
+\end{tabular}
+}
+\captionof{table}{farm\_profile Table Schema}
+
+\subsection{Protocols}
+
+\begin{itemize}
+    \item \textbf{HTTP/HTTPS}: All API communication uses RESTful HTTP/HTTPS endpoints. The backend runs on HTTP locally; production deployment should use HTTPS via reverse proxy (Nginx/Caddy)
+    \item \textbf{JSON}: All request and response bodies are JSON-encoded with \texttt{Content-Type: application/json}
+    \item \textbf{Multipart/form-data}: Used exclusively for image upload in disease detection (\texttt{POST /api/detect-disease})
+    \item \textbf{Bearer Token Authentication}: Groq API requires \texttt{Authorization: Bearer <api\_key>} header
+    \item \textbf{CORS}: Backend configured with \texttt{allow\_origins=["*"]}, \texttt{allow\_methods=["*"]}, \texttt{allow\_headers=["*"]} for mobile app access across development and production
+    \item \textbf{Data Transfer}: Images compressed to $<$1MB before upload. Translation cache updated on app launch (TTL: 24 hours)
+    \item \textbf{Encryption}: All external API calls (Groq, Open-Meteo) use TLS 1.2+ encryption
+\end{itemize}
+
+% ============================================================
+% 4. NON-FUNCTIONAL REQUIREMENTS
+% ============================================================
+\section{Non-functional Requirements}
+
+\subsection{Performance Requirements}
+
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|p{5cm}|p{3cm}|p{4cm}|}
+\hline
+\textbf{Operation} & \textbf{Target Time} & \textbf{Condition} \\
+\hline
+App cold start to Home screen & $<$ 3 seconds & Mid-range Android (4GB RAM) \\
+Disease detection (upload + inference + result) & $<$ 5 seconds & 3G network, $<$1MB image \\
+Chatbot first token & $<$ 2 seconds & Groq API, 4G network \\
+Weather dashboard load & $<$ 2 seconds & Open-Meteo API, 4G network \\
+Translation fetch and cache & $<$ 500ms & Backend on same network \\
+Screen navigation transition & $<$ 300ms & Any device \\
+\hline
+\end{tabular}
+\caption{Performance Requirements}
+\end{table}
+
+\textbf{Offline Performance:} Cached translations, stored user profile, and success stories are available instantly without internet. Weather and chatbot features show a graceful ``no connection'' message.
+
+\subsection{Security Requirements}
+
+\textbf{Authentication:}
+\begin{itemize}
+    \item 10-digit Indian mobile number as unique identifier
+    \item Minimum 6-character password enforced at client-side
+    \item Credentials stored in AsyncStorage (v1.0); future: bcrypt hashing with JWT tokens via backend
+\end{itemize}
+
+\textbf{Verification and Validation:}
+\begin{itemize}
+    \item Input validation on all form fields (regex for mobile, length check for password)
+    \item Login verifies credentials against stored data before granting access
+    \item Disease detection validates file type and size before processing
+\end{itemize}
+
+\textbf{Data Protection:}
+\begin{itemize}
+    \item All external API calls use HTTPS (TLS 1.2+)
+    \item No user data is shared with third-party services
+    \item Groq API receives only the chat message and weather context, not personal user data
+    \item User photos for disease detection are processed server-side and not stored
+\end{itemize}
+
+\textbf{Future Enhancements:}
+\begin{itemize}
+    \item OAuth 2.0 via Google Sign-In (\texttt{expo-auth-session})
+    \item Server-side password hashing with bcrypt
+    \item JWT-based session tokens with expiry
+    \item API key rotation and environment variable management
+\end{itemize}
+
+\subsection{Software Quality Attributes}
+
+\begin{itemize}
+    \item \textbf{Usability}: Simple, icon-driven interface designed for users with limited digital literacy. Large touch targets (44dp+), multilingual text, and contextual emojis/icons alongside all labels
+    \item \textbf{Reliability}: Graceful error handling with fallback messages. Offline translation cache ensures core UI functionality without internet
+    \item \textbf{Availability}: Backend designed for 99\% uptime. Weather and chatbot services depend on third-party API availability
+    \item \textbf{Portability}: React Native ensures a single codebase is deployable on both Android and iOS platforms
+    \item \textbf{Maintainability}: Modular architecture with separate service files (\texttt{aiService.ts}, \texttt{weatherService.ts}, \texttt{translationService.ts}, \texttt{diseaseService.ts}). Adding a new feature requires only creating a new screen component and registering it in the navigator
+    \item \textbf{Scalability}: Backend can be containerised (Docker) and deployed behind a load balancer. ML models can be moved to dedicated GPU instances for higher throughput
+    \item \textbf{Reusability}: Translation system, premium icon components, and service modules are reusable across any feature screen
+    \item \textbf{Testability}: REST API endpoints testable via Postman/curl. React Native components testable with Jest and React Testing Library
+    \item \textbf{Interoperability}: Standard REST APIs with JSON enable integration with external systems, dashboards, or government portals
+    \item \textbf{Correctness}: Disease model validated against a held-out test set. Government scheme data cross-referenced with official portals
+\end{itemize}
+
+% ============================================================
+% 5. OTHER REQUIREMENTS
+% ============================================================
+\section{Other Requirements}
+
+\begin{itemize}
+    \item \textbf{Deployment}: Backend deployable on any Linux server with Python 3.10+ and PostgreSQL. Mobile app publishable via Google Play Store (APK/AAB) and Apple App Store
+    \item \textbf{Training Data Maintenance}: Disease detection model requires periodic retraining as new crop diseases emerge or when expanding to new crops
+    \item \textbf{Legal and Regulatory Compliance}: Government scheme information must be updated when policies change. Disclaimer required stating that AI advice is supplementary and not a replacement for expert consultation
+    \item \textbf{Data Privacy}: User data stored locally on device and in server database. Privacy policy must be displayed before signup in compliance with India's Digital Personal Data Protection Act, 2023
+    \item \textbf{Accessibility}: Future versions should add voice input (speech-to-text) for farmers who cannot type, and text-to-speech for low-literacy users
+    \item \textbf{Internationalisation}: Adding a new language requires only updating the backend translation dictionary - no code changes needed
+    \item \textbf{Documentation}: User manual in Hindi and English to be provided for field training
+\end{itemize}
+
+% ============================================================
+% APPENDIX A: GLOSSARY
+% ============================================================
+\appendix
+\section{Glossary}
+
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|p{4cm}|p{8.5cm}|}
+\hline
+\textbf{Term} & \textbf{Definition} \\
+\hline
+Multilingual Intelligent Decision Support System & Agricultural Decision Support System \\
+ViT & Vision Transformer - a deep learning architecture that applies self-attention to image patches for classification \\
+NPK & Nitrogen, Phosphorus, Potassium - the three primary macronutrients in soil \\
+KVK & Krishi Vigyan Kendra - Agricultural Science Centre operated by ICAR \\
+PM-KISAN & Pradhan Mantri Kisan Samman Nidhi - direct cash transfer scheme for farmers \\
+KCC & Kisan Credit Card - subsidised agricultural loan scheme \\
+PMFBY & Pradhan Mantri Fasal Bima Yojana - national crop insurance scheme \\
+PMKSY & Pradhan Mantri Krishi Sinchayee Yojana - irrigation subsidy scheme \\
+eNAM & Electronic National Agriculture Market - online trading platform for agricultural commodities \\
+FPO & Farmer Producer Organization - collective of farmers for aggregation and marketing \\
+LLM & Large Language Model - AI model trained on vast text data for language understanding \\
+CRUD & Create, Read, Update, Delete - standard database operations \\
+ORM & Object-Relational Mapping - bridges programming objects and database tables \\
+REST & Representational State Transfer - architectural style for web APIs \\
+JWT & JSON Web Token - compact token format for secure information exchange \\
+CORS & Cross-Origin Resource Sharing - browser security mechanism for API access \\
+\hline
+\end{tabular}
+\caption{Glossary of Terms}
+\end{table}
+
+% ============================================================
+% APPENDIX B: ANALYSIS MODEL
+% ============================================================
+\section{Analysis Model}
+
+\subsection{Module Status Matrix}
+
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|p{4cm}|p{3.5cm}|p{2cm}|p{2.5cm}|}
+\hline
+\textbf{Module} & \textbf{Technology} & \textbf{Status} & \textbf{Completion} \\
+\hline
+Mobile Frontend & React Native / Expo 54 & Implemented & 100\% \\
+Backend API & FastAPI + SQLModel & Implemented & 100\% \\
+Disease Detection & ViT (HuggingFace) & Implemented & 100\% \\
+Crop Recommendation & Random Forest / XGBoost & Planned & 0\% \\
+Yield Prediction & Gradient Boosting & Planned & 0\% \\
+AI Chatbot & Groq API (Llama 3.3 70B) & Implemented & 100\% \\
+Weather Service & Open-Meteo API & Implemented & 100\% \\
+Translation Engine & Backend API + Cache & Implemented & 100\% \\
+Authentication & AsyncStorage (local) & Implemented & 100\% \\
+User Profile & AsyncStorage + Screen & Implemented & 100\% \\
+Govt Schemes & Static data (EN/HI/PA) & Implemented & 100\% \\
+Agri Knowledge & Static data (EN/HI/PA) & Implemented & 100\% \\
+Success Stories & AsyncStorage + Screen & Implemented & 100\% \\
+\hline
+\end{tabular}
+\caption{Module Status Matrix}
+\end{table}
+
+\subsection{Data Flow Summary}
+\begin{enumerate}
+    \item User selects language $\rightarrow$ app fetches translations from backend API $\rightarrow$ caches in AsyncStorage for offline use
+    \item User signs up $\rightarrow$ credentials validated (10-digit mobile, 6-char password) $\rightarrow$ saved to AsyncStorage $\rightarrow$ navigates to Home
+    \item User captures leaf image $\rightarrow$ image uploaded to \texttt{/api/detect-disease} $\rightarrow$ ViT model processes image $\rightarrow$ top-5 predictions returned with confidence scores
+    \item User asks chatbot question $\rightarrow$ app fetches weather context $\rightarrow$ message + context sent to Groq API $\rightarrow$ LLM response in user's language returned and displayed
+    \item User views weather $\rightarrow$ app calls Open-Meteo with GPS coordinates $\rightarrow$ 7-day forecast and hourly data displayed
+    \item User browses schemes $\rightarrow$ app loads language-specific scheme data $\rightarrow$ user taps ``Learn More'' to open official website
+\end{enumerate}
+
+% ============================================================
+% APPENDIX C: ISSUES LIST
+% ============================================================
+\section{Issues List}
+
+\begin{table}[H]
+\centering
+\tablefont
+\begin{tabular}{|c|p{4.5cm}|p{2cm}|p{4.5cm}|}
+\hline
+\textbf{ID} & \textbf{Issue} & \textbf{Priority} & \textbf{Resolution Plan} \\
+\hline
+I01 & Passwords stored in plain text locally & High & Implement bcrypt hashing + server-side JWT authentication \\
+\hline
+I02 & API key hardcoded in source code & High & Move to environment variables and secure key management \\
+\hline
+I03 & Disease model limited to 13 classes & Medium & Retrain on expanded PlantVillage dataset (38 classes) \\
+\hline
+I04 & Crop Recommendation model not yet integrated & Medium & Train Random Forest on Indian Crop Dataset; deploy via \texttt{/api/recommend-crop} \\
+\hline
+I05 & Yield Prediction model not yet integrated & Medium & Train Gradient Boosting on historical yield data; deploy via \texttt{/api/predict-yield} \\
+\hline
+I06 & No Google OAuth integration & Low & Add \texttt{expo-auth-session} with Google Cloud project credentials \\
+\hline
+I07 & No push notifications & Low & Integrate Expo Notifications for weather alerts and scheme updates \\
+\hline
+I08 & Government scheme data may become outdated & Low & Establish quarterly review cycle for scheme data accuracy \\
+\hline
+\end{tabular}
+\caption{Open Issues List}
+\end{table}
+
+\end{document}
