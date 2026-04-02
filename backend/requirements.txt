@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+python-multipart
+Pillow
+transformers
+torch
+sqlmodel
+psycopg2-binary
+python-dotenv
+deep-translator
+httpx
+joblib
+numpy
+scikit-learn
