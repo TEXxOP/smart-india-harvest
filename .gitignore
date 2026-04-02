@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Expo
+.expo/
+dist/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
