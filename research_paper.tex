@@ -1,0 +1,243 @@
+\documentclass[conference]{IEEEtran}
+
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\title{AgriDSS: A Proposed Architecture for an AI-Based Integrated\\
+Agricultural Decision Support System with IoT Sensing\\
+and Multilingual Mobile Interface}
+
+\author{
+\IEEEauthorblockN{}
+\IEEEauthorblockA{}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Smallholder farmers operating in resource-constrained environments face compounded challenges, including limited access to agronomic expertise, unpredictable weather patterns, and the absence of real-time field monitoring tools. This paper proposes the architecture of AgriDSS, an integrated, multilingual agricultural decision support system that combines IoT-based real-time field sensing with multi-module machine learning analytics to deliver actionable advisory services through a mobile application. The proposed system architecture comprises a field-level IoT sensing layer for continuous soil and environmental monitoring, a cloud-based processing layer hosting four tightly coupled analytical modules---crop recommendation, plant disease detection, yield forecasting, and irrigation advisory---and a farmer-facing multilingual mobile application built with React Native. The mobile interface supports English, Hindi, Punjabi, and additional regional languages through dynamic translation APIs, ensuring accessibility across India's linguistically diverse farming communities. An AI-powered conversational assistant using the Gemini large language model provides context-aware agronomic guidance. The system further incorporates an offline-first architecture with on-device inference, an SMS-based advisory channel for feature phone users, and a fully voice-operated interface for hands-free interaction. This paper describes the end-to-end system design, details the rationale behind each architectural decision, and presents the current implementation status. The proposed framework addresses the research-to-deployment gap by integrating diverse ML capabilities into a unified, multilingual, field-deployable platform targeting farmers with limited technological infrastructure.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Precision Agriculture, IoT, Decision Support System, Crop Recommendation, Plant Disease Detection, Yield Forecasting, Multilingual Interface, Mobile Application, System Architecture
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Agriculture remains the primary livelihood for a significant portion of the global population, yet smallholder farmers continue to operate with limited access to timely, data-driven advisory support~\cite{b1}. Conventional farming decisions regarding crop selection, fertilizer application, irrigation scheduling, and disease management are largely informed by generational experience and informal knowledge exchange, which often fail to adapt to rapidly changing climatic conditions and evolving pest pressures~\cite{b2}. The consequences of poor agronomic decisions are significant, manifesting as reduced yields, resource wastage, financial losses, and food insecurity at both household and regional scales~\cite{b3}.
+
+Recent advancements in Artificial Intelligence (AI), the Internet of Things (IoT), and mobile computing have created an opportunity to bridge this advisory gap by delivering real-time, context-aware recommendations directly to farmers in the field~\cite{b4}. IoT sensors can continuously monitor critical soil and environmental parameters, while machine learning (ML) models can translate these data into actionable guidance. However, the majority of existing research contributions treat these capabilities in isolation: crop recommendation systems, disease detection tools, and yield forecasting models are typically developed and evaluated independently, with limited integration into cohesive, field-deployable platforms~\cite{b5}.
+
+This fragmentation creates a practical barrier to adoption. A farmer managing a plot simultaneously requires knowledge of which crop to plant given current soil conditions, whether a visible leaf anomaly represents a treatable disease, what yield to expect given forecasted weather, and how much water to apply on a given day. Addressing these needs through separate, disconnected tools places an unreasonable burden on the end user and limits the cumulative value of each individual component.
+
+This work addresses the aforementioned gap by proposing AgriDSS, an integrated agricultural decision support system that unifies four core analytical modules---crop recommendation, plant disease detection, yield forecasting, and irrigation advisory---under a single IoT-connected, multilingual mobile platform. The contributions of this paper are as follows:
+
+\begin{itemize}
+    \item A three-tier system architecture integrating field-level IoT sensing, cloud-based ML analytics, and a multilingual mobile application into a unified decision support platform.
+    \item A modular cloud processing layer hosting crop recommendation, plant disease detection, yield prediction, and irrigation scheduling modules that consume shared IoT and weather data streams.
+    \item A multilingual mobile application built with React Native (Expo) supporting English, Hindi, Punjabi, and additional regional languages through dynamic translation APIs, designed for users with low digital literacy.
+    \item An AI-powered conversational assistant leveraging the Gemini large language model for context-aware agronomic advisory.
+    \item A detailed architectural design that addresses the research-to-deployment gap by proposing a practical, field-deployable integration of diverse ML capabilities for smallholder farmers.
+\end{itemize}
+
+The remainder of this paper is organized as follows. Section~II reviews related work across the relevant domains. Section~III describes the proposed system architecture. Section~IV details the current implementation. Section~V concludes the paper and outlines directions for future work.
+
+\section{Literature Review}
+
+Recent advancements in AI and ML have significantly impacted agricultural analytics, particularly in crop yield forecasting, disease detection, and precision farming systems. The following literature is categorized into three themes: general AI applications in agriculture, plant disease detection, and crop yield prediction.
+
+\subsection{Machine Learning Applications in Agriculture}
+
+Jabed and Murad (2024)~\cite{b6} conducted a comprehensive review of machine learning and deep learning approaches for crop yield prediction, published in Heliyon. The study analyzed commonly used models including Random Forest, SVM, ANN, CNN, and LSTM networks, emphasizing the significance of environmental factors such as rainfall, temperature, soil nutrients, and vegetation indices. However, the work is descriptive and does not propose an implementation framework.
+
+A systematic literature review on ML applications for sustainable agriculture supply chain performance~\cite{b7} highlighted the role of AI in increasing productivity and reducing resource wastage. The review provided useful insights and identified major scalability challenges but lacked implementation-level validation.
+
+A comprehensive survey of ML applications in agriculture~\cite{b8} explored irrigation scheduling, weed detection, soil classification, and crop monitoring using predictive models. Although it demonstrates the breadth of applicable ML techniques, yield-centric integration with real-time sensing remains insufficiently addressed.
+
+Shawon et al. (2025)~\cite{b9} conducted an extensive systematic literature review of crop yield prediction techniques using machine learning, published in Smart Agricultural Technology. The study provided a thorough analysis of ML approaches but did not include a real-time implementation targeting smallholder farmers.
+
+A bibliometric analysis of AI applications in food science and agriculture~\cite{b10} identified rapid growth in ML-based research after 2015, particularly in predictive modeling. However, the research-to-deployment gap remains persistent, with most contributions not progressing beyond laboratory evaluation.
+
+\subsection{Deep Learning for Plant Disease and Pest Detection}
+
+Archana et al. (2023)~\cite{b11} implemented a plant disease classification system using transfer learning with a pre-trained ResNet architecture at the IEEE ICICT conference. Although high classification accuracy was achieved, robustness under real-world field conditions was not evaluated.
+
+Mohanty, Hughes, and Salath\'{e} (2016)~\cite{b12} presented a foundational study on deep learning for image-based plant disease detection using the PlantVillage dataset. The study evaluated multiple CNN architectures and identified limitations related to dataset diversity, finding that model performance frequently degrades when applied outside controlled laboratory datasets.
+
+Chen et al. (2020)~\cite{b13} further explored cross-domain plant disease identification using deep transfer learning in Computers and Electronics in Agriculture. The study highlighted challenges in adapting models trained on controlled images to field conditions with varying lighting and occlusion.
+
+Oad et al. (2024)~\cite{b14} presented an ensemble learning approach with explainable AI for plant leaf disease detection in IEEE Access. The work demonstrates advanced classification techniques but does not address integration with broader agricultural forecasting systems.
+
+Wang et al. (2025)~\cite{b15} proposed a large language model for multimodal identification of crop diseases and pests in Scientific Reports. Despite its advanced contextual reasoning capabilities, the system focuses primarily on disease identification and does not incorporate crop yield forecasting or environmental risk evaluation.
+
+\subsection{Crop Yield Prediction Models}
+
+Asamoah et al. (2024)~\cite{b16} implemented a Random Forest regression model for maize yield and agronomic efficiency prediction in Ghana, published in Heliyon. The study used multi-year agronomic and climatic datasets with quantile regression forests for uncertainty estimation. However, the model was geographically limited and did not incorporate mobile-based decision delivery.
+
+Cao et al. (2021)~\cite{b17} demonstrated the effectiveness of integrating multi-source data for rice yield prediction across China using machine learning and deep learning approaches in Agricultural and Forest Meteorology. Despite improved accuracy, the computational complexity remains a barrier to edge deployment.
+
+Nihar et al. (2022)~\cite{b18} showed that NDVI and climatic data significantly enhance yield forecasting accuracy at a regional scale for sugarcane in India. However, the dependence on high-quality satellite imagery may not be feasible in rural areas with limited infrastructure.
+
+Xu et al. (2023)~\cite{b19} proposed an attention mechanism-combined LSTM model for grain yield prediction using multi-source satellite imagery. The model improved interpretability by emphasizing critical crop growth stages but lacked practical deployment discussion for real-time advisory systems.
+
+Bauer and Aschenbruck (2018)~\cite{b20} designed and implemented an agricultural monitoring system for smart farming incorporating IoT sensor networks. However, such systems are typically developed for enterprise-level operations and do not address the accessibility needs of smallholder farmers with limited technological infrastructure.
+
+\section{Proposed System Architecture}
+
+The proposed AgriDSS follows a three-tier architecture comprising a field sensing layer, a cloud processing layer, and a farmer-facing application layer. Fig.~\ref{fig:architecture} presents an overview of the system. The design prioritizes modularity, ensuring that each analytical component can operate both independently and in conjunction with the others, as well as low-latency data delivery to support real-time advisory generation.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/system_architecture.png}
+\caption{AgriDSS three-tier system architecture: IoT sensing layer, cloud processing layer, and mobile application layer.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{IoT Sensing Layer}
+
+The field sensing layer is composed of low-cost sensor nodes designed for deployment directly in the agricultural plot. Each node integrates a DHT22 sensor for ambient temperature and humidity measurement, a capacitive soil moisture sensor, a pH electrode, and an NPK sensor module for nitrogen, phosphorus, and potassium concentration readings. Sensor nodes are designed to communicate over a LoRa-based mesh network, enabling coverage across plots without continuous Wi-Fi availability. A gateway device at the plot perimeter aggregates sensor readings and transmits them to the cloud backend over a cellular connection at configurable intervals, defaulting to every five minutes.
+
+Raw sensor readings undergo on-device preprocessing, including outlier filtering using a sliding-window median filter and min-max normalization calibrated against laboratory soil analysis baselines. Each transmitted payload is timestamped and tagged with a unique sensor node identifier and GPS coordinates, enabling spatial mapping of field conditions within the application.
+
+In the current implementation, real-time environmental data (temperature, humidity, wind speed, UV index) is obtained through the Open-Meteo weather API as a substitute for field-deployed sensors during the development phase. The IoT sensing hardware deployment is planned for the next phase of field trials.
+
+\subsection{Cloud Backend and Data Pipeline}
+
+The cloud backend is implemented using a Python-based FastAPI microservice architecture. The REST API receives incoming sensor data and weather information, processes them through a feature engineering pipeline, and routes them to the appropriate analytical modules. The API layer exposes inference endpoints to the mobile application and supports asynchronous advisory request handling with push notification delivery.
+
+The data pipeline applies a feature engineering step prior to model inference, computing derived attributes including rolling averages for temperature and humidity, soil moisture deficit relative to crop-specific thresholds, and a composite soil fertility index computed as a weighted combination of NPK readings normalized by crop-specific requirement profiles.
+
+A PostgreSQL database (hosted on Neon cloud) stores user profiles, farm data, crop history, and advisory logs, enabling personalized recommendations that improve over successive growing seasons.
+
+\subsection{Crop Recommendation Module}
+
+The crop recommendation module frames advisory generation as a multi-class classification problem. The input feature vector for each inference request is constructed from seven attributes: nitrogen content (N), phosphorus content (P), potassium content (K), soil temperature, soil humidity, soil pH, and a 30-day average rainfall value sourced from the weather API. The target label space encompasses 22 crop categories relevant to the deployment region.
+
+A Random Forest classifier is selected as the primary model based on its robustness to feature scale differences, interpretability through feature importance ranking, and demonstrated effectiveness in prior agricultural classification tasks~\cite{b8}. The model is trained on the widely-used Kaggle Crop Recommendation Dataset with hyperparameter optimization performed using cross-validation.
+
+\subsection{Plant Disease Detection Module}
+
+The disease detection module accepts a photograph of a crop leaf submitted through the mobile application and returns a classification result identifying the crop species and disease condition, along with a confidence score and a treatment advisory generated from a curated agronomic knowledge base.
+
+The architecture employs a \textbf{cascaded inference strategy} to balance latency and accuracy. The primary model---a Vision Transformer (ViT) fine-tuned on the PlantVillage dataset---runs on the cloud backend and supports 13 crop-disease classes. When the primary model returns a prediction with a confidence score above a configurable threshold (default 0.85), the result is immediately delivered to the farmer. However, if the confidence score falls below this threshold---indicating an ambiguous or previously unseen disease presentation---the image is automatically escalated to a higher-capacity cloud model with broader class coverage and greater representational power. This secondary model operates asynchronously; the farmer is notified that the diagnosis is being processed by an advanced model, and the result is delivered via push notification once inference is complete. This cascaded approach ensures that common diseases are identified with minimal latency while rare or ambiguous cases still receive accurate diagnosis through the more computationally intensive model.
+
+Data augmentation during training includes random horizontal and vertical flipping, rotation, brightness and contrast jitter, and Gaussian blur to improve generalization to field-captured photographs.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\columnwidth]{figures/disease_detection_screen.png}
+\caption{Disease detection module: leaf image capture and multilingual diagnostic output in the mobile application.}
+\label{fig:disease_screen}
+\end{figure}
+
+\subsection{Yield Forecasting Module}
+
+The yield forecasting module is designed to produce a per-season yield estimate expressed in tonnes per hectare for the selected crop and plot. The input feature space combines IoT-derived soil attributes collected at planting time with meteorological forecasts obtained through the weather API, including predicted total rainfall, average temperature, and sunshine hours for the growing season. Historical yield records from the deployment region are incorporated as contextual priors where available.
+
+LightGBM is selected as the forecasting model due to its ability to capture nonlinear interactions between soil and climatic features, its computational efficiency at inference time, and its compatibility with SHAP-based interpretability~\cite{b6}. Prediction uncertainty is communicated to the farmer as a confidence interval to convey the dependence of the yield estimate on forecast reliability.
+
+\subsection{Irrigation Advisory Module}
+
+The irrigation scheduling module provides daily water requirement recommendations by computing a simplified crop water balance. The daily reference evapotranspiration ($ET_0$) is estimated using the Hargreaves--Samani equation from temperature and extraterrestrial radiation data. The actual crop evapotranspiration ($ET_c$) is derived by applying a crop coefficient ($K_c$) sourced from FAO-56 guidelines for the identified crop and current growth stage:
+
+\begin{equation}
+ET_c = K_c \times ET_0
+\label{eq:etc}
+\end{equation}
+
+\noindent The effective rainfall contribution is subtracted from $ET_c$, and the resulting deficit is compared against the real-time soil moisture reading. If the measured soil moisture falls below a crop-specific threshold derived from field capacity and allowable depletion parameters, an irrigation advisory is generated specifying the recommended water volume per unit area and an urgency level communicated through the mobile application.
+
+\subsection{AI Conversational Assistant}
+
+AgriDSS integrates a conversational AI assistant powered by Google's Gemini 2.0 Flash large language model. The assistant provides context-aware agronomic guidance by combining the farmer's profile data (crop type, soil conditions, location) with the LLM's general agricultural knowledge. Farmers can ask questions in natural language in their preferred language, and the assistant responds with localized advice covering crop management, pest identification, weather-based planning, and general farming practices.
+
+The conversational interface lowers the barrier to accessing expert agronomic knowledge, particularly for farmers who may not navigate module-specific interfaces intuitively.
+
+\subsection{Mobile Application}
+
+The farmer-facing mobile application is developed using React Native (Expo), targeting both Android and iOS platforms, with an offline mode that caches the most recent sensor readings and advisory outputs for access in low-connectivity environments. The interface is designed for users with low digital literacy, employing icon-driven navigation, voice output in regional languages, and color-coded status indicators for all module outputs. A guided onboarding flow collects the farmer's land size, soil type, previous crop, and current field status to personalize all downstream recommendations.
+
+A central design priority is \textbf{multilingual accessibility}. The application provides full interface localization in English, Hindi, and Punjabi, covering all UI elements, weather descriptions, disease diagnostic outputs, treatment advisories, and AI chatbot conversations. Additionally, the system integrates dynamic translation APIs to support further regional languages including Tamil, Telugu, Bengali, Marathi, and Kannada. A centralized translation context manages language state, and all user-facing strings are served from a backend translation dictionary, allowing new languages to be added without application-level code changes. This multilingual architecture ensures that the platform is accessible to India's linguistically diverse agricultural workforce from deployment.
+
+\subsection{Offline Mode and Local Caching}
+
+Reliable internet connectivity cannot be assumed in rural agricultural regions. AgriDSS incorporates an offline-first architecture that ensures continued functionality without network access. The mobile application caches the most recent sensor readings, weather forecasts, and advisory outputs in a local SQLite database. When connectivity is unavailable, the cached data is displayed with a timestamp indicating freshness. For disease detection, a compressed on-device model is packaged within the application binary, enabling local inference without server communication. When the device reconnects, any offline diagnoses are synchronized with the cloud backend for logging and, if applicable, escalation to the higher-capacity model. Crop recommendation results and irrigation advisories computed from the most recent cached soil and weather data remain accessible offline, ensuring that the farmer is never without actionable guidance.
+
+\subsection{SMS-Based Advisory Support}
+
+To extend the reach of AgriDSS beyond smartphone users, the system includes an SMS gateway for delivering advisory services to farmers using basic feature phones. Farmers can register their phone number and crop details through an assisted onboarding process. The cloud backend generates periodic advisory messages---including weather alerts, irrigation reminders, and crop management tips---and dispatches them via an SMS gateway service. Farmers can also send structured SMS queries (e.g., crop name and soil type) to receive crop recommendations as text replies. This channel ensures that the most resource-constrained farmers, who may lack smartphones or data plans, can still benefit from the system's analytical capabilities.
+
+\subsection{Voice-Operated Interface}
+
+AgriDSS is designed to support fully voice-operated interaction, eliminating the requirement for text-based input. The mobile application integrates speech recognition for capturing farmer queries in regional languages and text-to-speech (TTS) for delivering advisory responses audibly. Voice input is processed through an automatic speech recognition (ASR) pipeline supporting Hindi, Punjabi, and English, with the recognized text routed to the AI conversational assistant for response generation. All module outputs---disease diagnoses, crop recommendations, weather summaries, and irrigation alerts---can be read aloud to the farmer in their selected language. This hands-free interaction model is critical for usability among farmers who may have limited literacy or who are working in the field and cannot interact with a touchscreen.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\columnwidth]{figures/app_dashboard.png}
+\caption{Mobile application dashboard displaying real-time weather data, sensor readings, and module navigation.}
+\label{fig:dashboard}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\columnwidth]{figures/crop_recommendation_screen.png}
+\caption{Crop recommendation module output with soil-based suitability ranking in the mobile application.}
+\label{fig:crop_rec}
+\end{figure}
+
+\section{Implementation}
+
+The current implementation of AgriDSS realizes the cloud processing and mobile application layers of the proposed architecture. Table~\ref{tab:techstack} summarizes the technology stack.
+
+\begin{table}[htbp]
+\caption{AgriDSS Implementation Technology Stack}
+\label{tab:techstack}
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Technology} \\
+\midrule
+Mobile Application     & React Native (Expo) \\
+Backend API            & Python, FastAPI, Uvicorn \\
+Database               & PostgreSQL (Neon Cloud) \\
+Disease Detection      & Vision Transformer (ViT) \\
+AI Chat Assistant      & Google Gemini 2.0 Flash \\
+Weather Data           & Open-Meteo API \\
+Translation            & Dynamic Translation APIs \\
+Offline Storage        & SQLite (on-device cache) \\
+SMS Gateway            & Cloud SMS API \\
+Voice Interface        & ASR + TTS Engines \\
+IoT Sensing (Proposed) & DHT22, NPK, pH, LoRa \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The mobile application and cloud backend are fully functional and have been tested on Android devices via Expo Go. The disease detection module currently supports 13 crop-disease classes using a ViT model. The AI conversational assistant is operational and provides multilingual agronomic guidance.
+
+The IoT sensing layer represents the proposed extension of the architecture. While the system is designed to consume real-time sensor data, the current development phase uses weather API data to simulate environmental readings. Field deployment of the IoT hardware with LoRa-based communication is planned for the next implementation phase.
+
+The system's modular architecture allows each component to be developed, tested, and deployed independently. This modularity facilitates iterative refinement: as individual ML models are retrained with improved datasets or new modules are added, the overall platform remains stable and backward-compatible.
+
+\section{Conclusion}
+
+This paper presented the architecture of AgriDSS, an integrated agricultural decision support system that unifies IoT-based field sensing, multi-module machine learning analytics, and a multilingual mobile application into a cohesive platform for smallholder farmers. The proposed three-tier architecture addresses the fragmentation that limits the practical value of existing standalone agricultural AI tools by integrating crop recommendation, plant disease detection, yield forecasting, and irrigation advisory within a single system. The architecture further incorporates offline operation with on-device inference, SMS-based advisory delivery for feature phone users, and a fully voice-operated interface to maximize accessibility across diverse user profiles and infrastructure constraints.
+
+The current implementation realizes the cloud processing and mobile application layers, with a functional disease detection module supporting 13 crop-disease classes, an AI conversational assistant powered by Gemini 2.0 Flash, and a multilingual interface supporting English, Hindi, Punjabi, and additional regional languages through dynamic translation APIs. The modular design ensures that the platform can be incrementally extended as new components are developed and validated.
+
+Future work will focus on the following areas: (1) deployment of the proposed IoT sensing hardware with LoRa mesh networking for field trials; (2) quantitative benchmarking of all ML modules with cross-validation evaluation to establish baseline performance metrics; (3) expansion of the disease detection model to cover a broader range of crop-disease classes; (4) a usability study with smallholder farmers to evaluate system acceptance and identify design improvements; (5) investigation of federated learning approaches to enable on-device model improvement without data centralization; and (6) integration of hyperspectral imaging for early-stage disease detection. Longitudinal field trials spanning multiple growing seasons are planned to validate the system's impact on actual yield outcomes and resource utilization efficiency.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
