@@ -1,0 +1,31 @@
+{
+  "random_forest": {
+    "type": "<class 'sklearn.multioutput.MultiOutputClassifier'>",
+    "n_features_in_": 7,
+    "feature_names_in_": [
+      "N",
+      "P",
+      "K",
+      "temperature",
+      "humidity",
+      "ph",
+      "rainfall"
+    ]
+  },
+  "crop_yield": {
+    "type": "<class 'sklearn.ensemble._forest.RandomForestRegressor'>",
+    "n_features_in_": 10,
+    "feature_names_in_": [
+      "Year",
+      "State_Encoded",
+      "Crop_Encoded",
+      "Latitude",
+      "Longitude",
+      "Soil pH",
+      "weather_temp_c",
+      "weather_humidity_pct",
+      "weather_precip_mm",
+      "weather_sunshine_hours"
+    ]
+  }
+}
