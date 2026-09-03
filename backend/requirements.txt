@@ -1,15 +1,38 @@
-fastapi
-uvicorn
-pydantic
-python-multipart
-Pillow
-transformers
-torch
-sqlmodel
-psycopg2-binary
-python-dotenv
-deep-translator
-httpx
-joblib
-numpy
-scikit-learn
+# Web layer
+fastapi==0.128.7
+uvicorn==0.40.0
+starlette==0.52.1
+pydantic==2.12.5
+python-multipart==0.0.22
+httpx==0.28.1
+
+# Persistence
+sqlmodel==0.0.33
+SQLAlchemy==2.0.46
+psycopg2-binary==2.9.11
+python-dotenv==1.2.1
+
+# ML inference
+# Do not bump scikit-learn casually. The committed pickles were produced by
+# 1.4.2 (crop recommender) and 1.8.0 (yield model); 1.7.2 is the version both
+# have been verified to load and predict correctly under. Changing it means
+# re-verifying both models, not just re-running the build.
+scikit-learn==1.7.2
+joblib==1.5.3
+numpy==2.2.6
+pillow==12.1.1
+
+# Disease detection (ViT).
+# torch + transformers are deliberately NOT here. Importing them cost ~225 MB
+# RSS, which pushed the service to ~500 MB against Render free tier's 512 MB
+# ceiling. The same ViT exported to ONNX (backend/disease_model/model.onnx,
+# 22 MB, committed) runs under onnxruntime for ~35 MB instead. The 17 MB
+# onnxruntime wheel also replaces a ~200 MB torch wheel, so builds are far
+# faster. Re-export with `python export_disease_onnx.py` if the model changes;
+# that script is the only thing that needs torch, and it runs on a dev machine.
+onnxruntime==1.23.2
+
+# NOTE: `deep-translator` was listed here but is not imported by main.py,
+# database.py, or models.py, and is not installed in the venv. Dropped so it
+# does not lengthen every Render build. Re-add pinned if translation moves
+# server-side.

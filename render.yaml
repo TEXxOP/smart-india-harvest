@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────────────────────────────
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploy: push this repo to GitHub, then in Render pick
+# "New +" → "Blueprint" → select the repo. Render reads this file and
+# prompts for the two secrets marked `sync: false`.
+# ─────────────────────────────────────────────────────────────────────
+services:
+  - type: web
+    name: smart-india-harvest-api
+    runtime: python
+
+    # 0.1 CPU / 512 MB. MUST be stated explicitly — omitting `plan` puts the
+    # service on the paid 0.5c-512mb instance instead.
+    plan: free
+
+    # Closest region to India; cannot be changed after the service is created.
+    region: singapore
+
+    # Only backend/ changes trigger a rebuild, so paper and notebook commits
+    # do not burn deploy minutes.
+    rootDir: ./backend
+
+    # prefetch_models.py hard-fails the build if the committed model artifacts
+    # are missing, unloadable, or (for the ONNX graph) not runnable — better
+    # than a service that boots and then errors on every prediction. It needs no
+    # network access.
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt && python prefetch_models.py
+
+    # main.py has no __main__ block, so uvicorn is invoked here. $PORT is
+    # assigned by Render — never hardcode 8000.
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+
+    healthCheckPath: /api/health
+
+    envVars:
+      # Python is pinned via backend/.python-version (3.10). Do not add a
+      # PYTHON_VERSION var here — it overrides that file, and new services now
+      # default to 3.14, which has no numpy/onnxruntime wheels for these pins.
+
+      # Prompted for on Blueprint creation; never committed.
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+      # Never turn this on in production — it logs every SQL statement and its
+      # row values.
+      - key: SQL_ECHO
+        value: "false"
+
+      # One CPU thread on a 0.1-CPU instance; matches the onnxruntime session
+      # options in main.py. No HF_* vars are needed — the disease model is a
+      # committed ONNX file, so nothing is fetched from HuggingFace at runtime.
+      - key: OMP_NUM_THREADS
+        value: "1"

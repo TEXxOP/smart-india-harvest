@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from sqlmodel import Session, select
 from pydantic import BaseModel
 from PIL import Image
@@ -8,7 +9,7 @@ import os
 import json
 import math
 import tempfile
-import torch
+import threading
 import httpx
 import joblib
 import numpy as np
@@ -42,40 +43,143 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Load ViT model at startup ──
-print("Loading crop disease model...")
-from transformers import ViTImageProcessor, ViTForImageClassification
+# ── Disease model (ViT via ONNX Runtime) — loaded lazily on first use ──
+# The ViT used to run through torch + transformers, whose imports alone cost
+# ~225 MB RSS on top of ~245 MB for sklearn and the two joblib models. That
+# peaked near 500 MB and did not fit a 512 MB Render instance. The same graph
+# exported to ONNX runs under onnxruntime for ~35 MB instead, so the whole
+# service now fits with headroom. See backend/export_disease_onnx.py for the
+# export, and DEPLOYMENT.md for the measured numbers.
+#
+# The weights are read from disk, not the Hub, so a cold start needs no network
+# and cannot be broken by a HuggingFace outage or a rate limit.
+DISEASE_MODEL_ID = os.getenv("DISEASE_MODEL_ID", "wambugu71/crop_leaf_diseases_vit")
+DISEASE_MODEL_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "disease_model"
+)
 
-try:
-    processor = ViTImageProcessor.from_pretrained('wambugu71/crop_leaf_diseases_vit')
-    model = ViTForImageClassification.from_pretrained(
-        'wambugu71/crop_leaf_diseases_vit',
-        ignore_mismatched_sizes=True
+_disease_bundle = None        # (session, meta) once loaded
+_disease_error = None         # sticky failure message; avoids retry storms
+_disease_lock = threading.Lock()
+
+
+def _load_disease_model():
+    """Open the ONNX session and read the label/normalisation sidecar.
+
+    Blocking (~0.2 s) — call it off the event loop. Returns (session, meta).
+    Raises RuntimeError on failure and remembers the failure so later calls
+    fail fast instead of retrying a load that cannot succeed.
+    """
+    global _disease_bundle, _disease_error
+
+    if _disease_bundle is not None:
+        return _disease_bundle
+
+    with _disease_lock:
+        # Re-check inside the lock: a concurrent caller may have finished.
+        if _disease_bundle is not None:
+            return _disease_bundle
+        if _disease_error is not None:
+            raise RuntimeError(_disease_error)
+
+        try:
+            import onnxruntime as ort
+
+            onnx_path = os.path.join(DISEASE_MODEL_DIR, "model.onnx")
+            meta_path = os.path.join(DISEASE_MODEL_DIR, "preprocess.json")
+            for p in (onnx_path, meta_path):
+                if not os.path.exists(p):
+                    raise FileNotFoundError(
+                        f"{os.path.relpath(p)} is missing. Run "
+                        "`python export_disease_onnx.py` and commit "
+                        "backend/disease_model/."
+                    )
+
+            print("Loading disease model from disease_model/model.onnx ...")
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+
+            opts = ort.SessionOptions()
+            # One shared CPU on a small instance; extra threads only add
+            # contention and each one costs an arena.
+            opts.intra_op_num_threads = 1
+            opts.inter_op_num_threads = 1
+            opts.graph_optimization_level = (
+                ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            )
+            sess = ort.InferenceSession(
+                onnx_path, sess_options=opts, providers=["CPUExecutionProvider"]
+            )
+
+            _disease_bundle = (sess, meta)
+            print(f"Disease model ready: {len(meta['labels'])} classes.")
+            return _disease_bundle
+        except Exception as e:
+            _disease_error = f"Disease model unavailable: {e}"
+            print(_disease_error)
+            raise RuntimeError(_disease_error)
+
+
+def _preprocess_leaf_image(image: "Image.Image", meta: dict) -> np.ndarray:
+    """Reproduce ViTImageProcessor: resize, rescale to [0,1], normalise, NCHW.
+
+    Verified against transformers' own processor to a max deviation of ~1e-7,
+    so swapping it in does not change predictions.
+    """
+    resized = image.resize(
+        (meta["width"], meta["height"]), resample=meta.get("resample", 2)
     )
-    model.eval()
-    print(f"Disease model loaded! {len(model.config.id2label)} disease classes available.")
-except Exception as e:
-    print(f"Disease model loading failed: {e}")
-    model = None
+    arr = np.asarray(resized, dtype=np.float32) * meta["rescale_factor"]
+    arr = (arr - np.asarray(meta["image_mean"], dtype=np.float32)) / np.asarray(
+        meta["image_std"], dtype=np.float32
+    )
+    # HWC -> CHW -> NCHW, contiguous because onnxruntime copies strided input.
+    return np.ascontiguousarray(arr.transpose(2, 0, 1)[None, ...], dtype=np.float32)
 
-# ── Load ML .pkl models ──
+
+# ── Load ML models ──
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-print("Loading crop recommendation model (RandomForest)...")
+# The two joblib artifacts were pickled by different scikit-learn versions than
+# the pinned 1.7.2 (crop recommender: 1.4.2, yield model: 1.8.0), so sklearn
+# emits an InconsistentVersionWarning per nested estimator — roughly 30 lines of
+# noise on every cold start. Both models have been verified to load and predict
+# correctly under 1.7.2 (rice at p=0.948 for the canonical rice soil profile;
+# yield model reports its expected 15 features), so the warning is downgraded to
+# one explicit line rather than left to flood the logs. Re-pickling both models
+# under a single sklearn version is the real fix.
+import warnings
 try:
-    crop_recommender = joblib.load(os.path.join(BASE_DIR, "RandomForest.pkl"))
-    print("Crop recommender loaded successfully.")
+    from sklearn.exceptions import InconsistentVersionWarning
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+    print("Note: model pickles predate sklearn 1.7.2; version warnings suppressed "
+          "(load + prediction verified).")
+except ImportError:
+    pass
+
+print("Loading crop recommendation model (Tuned RandomForest - 99.3% acc)...")
+try:
+    _crop_artifact = joblib.load(os.path.join(BASE_DIR, "crop_recommendation_model.joblib"))
+    crop_rec_pipeline   = _crop_artifact["model"]        # sklearn Pipeline
+    crop_rec_features   = _crop_artifact["features"]     # ["N","P","K","temperature","humidity","ph","rainfall"]
+    crop_rec_labels     = _crop_artifact["crop_labels"]  # 22 crop label strings
+    print(f"Crop recommender loaded! {len(crop_rec_labels)} labels.")
 except Exception as e:
     print(f"Crop recommender loading failed: {e}")
-    crop_recommender = None
+    crop_rec_pipeline = None
+    crop_rec_features = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+    crop_rec_labels   = []
 
 print("Loading crop yield prediction model...")
 try:
-    yield_predictor = joblib.load(os.path.join(BASE_DIR, "crop_yield_model.pkl"))
+    yield_model_dir = os.path.join(BASE_DIR, "yield_model")
+    yield_predictor = joblib.load(os.path.join(yield_model_dir, "best_model.pkl"))
+    yield_category_mappings = joblib.load(os.path.join(yield_model_dir, "category_mappings.pkl"))
     print("Yield predictor loaded successfully.")
 except Exception as e:
     print(f"Yield predictor loading failed: {e}")
     yield_predictor = None
+    yield_category_mappings = None
 
 # ── Soil type → NPK, pH lookup (agronomic reference values) ──
 SOIL_PROFILES = {
@@ -89,31 +193,7 @@ SOIL_PROFILES = {
     "Saline":     {"N": 30, "P": 12, "K": 20, "ph": 8.5},
 }
 
-# ── State encoding map (must match training data) ──
-STATE_ENCODING = {
-    "Andhra Pradesh": 0, "Assam": 1, "Bihar": 2, "Chhattisgarh": 3,
-    "Gujarat": 4, "Haryana": 5, "Himachal Pradesh": 6, "Jharkhand": 7,
-    "Karnataka": 8, "Kerala": 9, "Madhya Pradesh": 10, "Maharashtra": 11,
-    "Manipur": 12, "Meghalaya": 13, "Nagaland": 14, "Odisha": 15,
-    "Punjab": 16, "Rajasthan": 17, "Tamil Nadu": 18, "Telangana": 19,
-    "Tripura": 20, "Uttar Pradesh": 21, "Uttarakhand": 22, "West Bengal": 23,
-}
-
-CROP_ENCODING = {
-    "Arecanut": 0, "Arhar/Tur": 1, "Bajra": 2, "Banana": 3, "Barley": 4,
-    "Black pepper": 5, "Cardamom": 6, "Cashewnut": 7, "Castor seed": 8,
-    "Coconut": 9, "Coriander": 10, "Cotton": 11, "Cowpea": 12,
-    "Dry chillies": 13, "Garlic": 14, "Ginger": 15, "Gram": 16,
-    "Groundnut": 17, "Guar seed": 18, "Horse-gram": 19, "Jowar": 20,
-    "Jute": 21, "Khesari": 22, "Linseed": 23, "Maize": 24,
-    "Masoor": 25, "Mesta": 26, "Moong": 27, "Moth": 28,
-    "Niger seed": 29, "Oilseeds total": 30, "Onion": 31, "Other Rabi pulses": 32,
-    "Peas & beans": 33, "Potato": 34, "Ragi": 35, "Rapeseed & Mustard": 36,
-    "Rice": 37, "Safflower": 38, "Sannhamp": 39, "Sesamum": 40,
-    "Small millets": 41, "Soyabean": 42, "Sugarcane": 43, "Sunflower": 44,
-    "Sweet potato": 45, "Tapioca": 46, "Tobacco": 47, "Turmeric": 48,
-    "Urad": 49, "Wheat": 50,
-}
+# State and Crop encodings are now loaded dynamically from yield_category_mappings
 
 # ── Crop coefficients (Kc) for ET₀-based irrigation ──
 CROP_KC = {
@@ -139,7 +219,18 @@ def read_root():
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "model_loaded": model is not None}
+    """Cheap liveness probe — must never touch the lazy ViT loader.
+
+    Render polls this; if it blocked on a model load the instance would be
+    marked unhealthy during the very first disease request.
+    """
+    return {
+        "status": "ok",
+        "crop_recommender_loaded": crop_rec_pipeline is not None,
+        "yield_model_loaded": yield_predictor is not None,
+        "disease_model_loaded": _disease_bundle is not None,
+        "disease_model_error": _disease_error,
+    }
 
 
 # ── Database Endpoints ──
@@ -179,40 +270,45 @@ def get_farm_profile(user_id: str, session: Session = Depends(get_session)):
 async def detect_disease(file: UploadFile = File(...)):
     """
     Accepts a crop leaf image and returns disease prediction.
-    Uses ViT (Vision Transformer) model from HuggingFace.
-    """
-    if model is None:
-        return {"success": False, "error": "Model not loaded correctly"}
+    Uses ViT (Vision Transformer) inference through ONNX Runtime.
 
+    The ONNX session is opened on the first call to this endpoint, then cached
+    for the life of the process. Both the load and the inference run in a worker
+    thread so they do not stall the event loop (and therefore do not stall
+    Render's health checks).
+    """
     try:
-        # Read and open image
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
+    except Exception as e:
+        return {"success": False, "error": f"Could not read image: {e}", "predictions": []}
 
-        # Run inference
-        inputs = processor(images=image, return_tensors="pt")
-        with torch.no_grad():
-            outputs = model(**inputs)
+    def _infer():
+        sess, meta = _load_disease_model()
+        labels = meta["labels"]
 
-        logits = outputs.logits
-        probabilities = torch.nn.functional.softmax(logits, dim=-1)[0]
+        pixel_values = _preprocess_leaf_image(image, meta)
+        logits = sess.run(["logits"], {"pixel_values": pixel_values})[0][0]
 
-        # Get top 5 predictions
-        top5 = torch.topk(probabilities, min(5, len(probabilities)))
-        predictions = []
-        for score, idx in zip(top5.values, top5.indices):
-            label = model.config.id2label[idx.item()]
-            predictions.append({
-                "label": label,
-                "score": round(score.item(), 4)
-            })
+        # Softmax in float64, shifted by the max, so a large logit cannot overflow.
+        shifted = np.exp(logits.astype(np.float64) - logits.max())
+        probabilities = shifted / shifted.sum()
 
+        top_k = min(5, len(probabilities))
+        # argsort ascending, take the tail, reverse -> descending by score.
+        top_idx = np.argsort(probabilities)[-top_k:][::-1]
+        return [
+            {"label": labels[int(i)], "score": round(float(probabilities[i]), 4)}
+            for i in top_idx
+        ]
+
+    try:
+        predictions = await run_in_threadpool(_infer)
         return {
             "success": True,
             "predictions": predictions,
             "top_prediction": predictions[0] if predictions else None,
         }
-
     except Exception as e:
         print(f"Disease detection error: {e}")
         return {
@@ -223,12 +319,20 @@ async def detect_disease(file: UploadFile = File(...)):
 
 
 @app.get("/api/model-labels")
-def get_model_labels():
-    """Returns all disease labels the model can identify."""
-    if model is None: return {"error": "Model not loaded"}
+async def get_model_labels():
+    """Returns all disease labels the model can identify.
+
+    Triggers the lazy load if the model is not resident yet.
+    """
+    try:
+        _, meta = await run_in_threadpool(_load_disease_model)
+    except Exception as e:
+        return {"error": str(e)}
+    labels = meta["labels"]
     return {
-        "total_classes": len(model.config.id2label),
-        "labels": model.config.id2label,
+        "total_classes": len(labels),
+        # Index-keyed object, matching the shape transformers' id2label produced.
+        "labels": {str(i): name for i, name in enumerate(labels)},
     }
 
 # ── Translation Endpoints ──
@@ -856,8 +960,16 @@ def parse_json_response(raw: str):
 
 
 # ═══════════════════════════════════════════════════════════════
-# ██  CROP RECOMMENDATION (Groq LLM — Context-Aware)          ██
+# ██  CROP RECOMMENDATION (ML Primary + LLM Enrichment)       ██
 # ═══════════════════════════════════════════════════════════════
+#
+# Architecture:
+#   1. Tuned Random Forest (99.3% acc) predicts top-5 crops by probability
+#      using live N/P/K (from soil profile), temperature, humidity, pH,
+#      and rainfall fetched from Open-Meteo.
+#   2. Groq LLM enriches each ML crop with: reason, market_demand,
+#      estimated_price_per_quintal, season_match — in the requested language.
+#   3. If LLM fails, ML probabilities are still returned as confidence scores.
 
 class CropRecommendationRequest(BaseModel):
     soil_type: str = "Alluvial"
@@ -868,106 +980,166 @@ class CropRecommendationRequest(BaseModel):
     lang_code: str = "en"
 
 
+def _ml_top5_crops(
+    N: float, P: float, K: float,
+    temperature: float, humidity: float, ph: float, rainfall: float
+) -> list[dict]:
+    """
+    Run the trained Random Forest pipeline and return top-5 crops
+    as [{crop, confidence}, ...] sorted by confidence desc.
+    """
+    if crop_rec_pipeline is None:
+        return []
+    import pandas as _pd
+    X = _pd.DataFrame(
+        [[N, P, K, temperature, humidity, ph, rainfall]],
+        columns=crop_rec_features,
+    )
+    proba = crop_rec_pipeline.predict_proba(X)[0]           # shape: (n_classes,)
+    classes = crop_rec_pipeline.classes_                     # ordered label array
+    top5_idx = proba.argsort()[::-1][:5]
+    return [
+        {"crop": str(classes[i]), "confidence": round(float(proba[i]) * 100, 1)}
+        for i in top5_idx
+    ]
+
+
 @app.post("/api/crop-recommendation")
 async def crop_recommendation(req: CropRecommendationRequest):
     """
-    Context-aware crop recommendation using Groq LLM.
-    Auto-fetches: weather (Open-Meteo), state (reverse geocode), season (date).
-    Considers: soil type, NPK, pH, previous crop, weather, season, region, market demand.
+    Hybrid crop recommendation:
+      - ML model (tuned RandomForest, 99.3% accuracy) for primary crop ranking.
+      - Groq LLM for multilingual enrichment (reason, market demand, price).
+    Auto-fetches weather (Open-Meteo) and reverse-geocodes lat/lon → state.
     """
-    # 1. Auto-fetch context
-    state = req.state or get_state_from_coords(req.latitude, req.longitude)
+    # ── 1. Resolve context ──
+    state  = req.state or get_state_from_coords(req.latitude, req.longitude)
     season = get_current_season()
-    soil = SOIL_PROFILES.get(req.soil_type, SOIL_PROFILES["Alluvial"])
+    soil   = SOIL_PROFILES.get(req.soil_type, SOIL_PROFILES["Alluvial"])
+    N, P, K, ph = soil["N"], soil["P"], soil["K"], soil["ph"]
 
-    # 2. Fetch live weather
+    # ── 2. Fetch live weather ──
     try:
-        weather = await fetch_open_meteo_weather(req.latitude, req.longitude)
+        weather     = await fetch_open_meteo_weather(req.latitude, req.longitude)
         temperature = weather["current"]["temperature_2m"]
-        humidity = weather["current"]["relative_humidity_2m"]
-        rainfall = sum(weather["daily"]["precipitation_sum"][:7]) if weather["daily"].get("precipitation_sum") else 50.0
-        rain_forecast = weather["daily"].get("precipitation_probability_max", [0]*7)[:7]
+        humidity    = weather["current"]["relative_humidity_2m"]
+        rainfall    = sum(weather["daily"]["precipitation_sum"][:7]) if weather["daily"].get("precipitation_sum") else 50.0
+        rain_forecast = weather["daily"].get("precipitation_probability_max", [0] * 7)[:7]
     except Exception as e:
         print(f"Weather fetch failed: {e}")
-        temperature = 25.0
-        humidity = 65.0
-        rainfall = 50.0
+        temperature   = 25.0
+        humidity      = 65.0
+        rainfall      = 50.0
         rain_forecast = [20] * 7
 
-    # 3. Build context-aware prompt
-    system_prompt = """You are an expert Indian agricultural scientist and crop advisor.
-You have deep knowledge of Indian agriculture including:
-- Crop-soil compatibility for all Indian soil types
-- Seasonal crop calendars (Kharif, Rabi, Zaid)  
-- Regional crop traditions and market demand across Indian states
-- Crop rotation best practices
-- Weather impact on crop selection
-- Current market prices and demand trends
-- NPK and pH requirements for each crop
+    # ── 3. ML inference — top-5 crops with probabilities ──
+    ml_candidates = _ml_top5_crops(N, P, K, temperature, humidity, ph, rainfall)
+    print(f"ML top-5: {ml_candidates}")
 
+    # ── 4. LLM enrichment — add reason, market demand, price ──
+    enriched = []
+    if ml_candidates:
+        top_crop_list = ", ".join(c["crop"] for c in ml_candidates)
+        system_prompt = """You are an expert Indian agricultural scientist and market advisor.
+You have deep knowledge of Indian agriculture, seasonal crop calendars (Kharif/Rabi/Zaid),
+regional crop traditions, market demand, and government MSP prices.
 You MUST respond ONLY with valid JSON. No markdown, no explanations outside JSON."""
 
-    user_prompt = f"""Recommend the top 5 best crops for this farmer:
+        user_prompt = f"""These crops were ranked by a machine-learning model for a farmer.
+Enrich each crop with a brief farmer-friendly reason, market demand, and estimated price.
 
 FARMER CONTEXT:
-- Location: {state}, India (lat: {req.latitude}, lon: {req.longitude})
-- Soil Type: {req.soil_type}
-- Soil Nutrients: N={soil['N']}, P={soil['P']}, K={soil['K']}, pH={soil['ph']}
+- Location: {state}, India
+- Soil Type: {req.soil_type} (N={N}, P={P}, K={K}, pH={ph})
 - Previous Crop: {req.previous_crop or 'Not specified'}
-- Current Season: {season}
-- Current Weather: {temperature}°C, {humidity}% humidity
-- Recent Rainfall: {rainfall:.1f}mm (last 7 days)
-- Rain Forecast: {rain_forecast}
+- Season: {season}
+- Weather: {temperature:.1f}°C, {humidity:.0f}% humidity, {rainfall:.0f}mm rainfall (7 days)
+
+ML-RANKED CROPS (in order): {top_crop_list}
 
 RESPOND in {LANG_NAMES.get(req.lang_code, 'English')}.
 
-Return ONLY this JSON structure:
+Return ONLY a JSON array with exactly {len(ml_candidates)} objects, preserving the crop order:
 [
   {{
-    "crop": "<crop name in local language + English>",
-    "confidence": <number 70-98>,
-    "reason": "<1-2 sentence reason considering soil, weather, season, region, and market>",
+    "crop": "<crop name in local language if applicable + English, e.g. 'Rice (चावल)'>",
+    "reason": "<1-2 sentence reason considering soil, weather, season, and regional market>",
     "market_demand": "<High/Medium/Low>",
-    "estimated_price_per_quintal": <number in INR>,
+    "estimated_price_per_quintal": <integer INR>,
     "season_match": "<Perfect/Good/Moderate>"
   }}
-]
+]"""
 
-Give exactly 5 crops. Be region-specific (e.g., suggest rice varieties for Punjab, coconut for Kerala)."""
+        try:
+            raw    = await call_groq_llm(user_prompt, system=system_prompt, max_tokens=900)
+            parsed = parse_json_response(raw)
+            if parsed and isinstance(parsed, list) and len(parsed) == len(ml_candidates):
+                for ml, llm in zip(ml_candidates, parsed):
+                    enriched.append({
+                        "crop":                      llm.get("crop", ml["crop"]),
+                        "confidence":                ml["confidence"],  # always from ML
+                        "reason":                    llm.get("reason", ""),
+                        "market_demand":              llm.get("market_demand", "Medium"),
+                        "estimated_price_per_quintal": llm.get("estimated_price_per_quintal", 0),
+                        "season_match":              llm.get("season_match", "Good"),
+                    })
+            else:
+                raise ValueError("LLM response length mismatch")
+        except Exception as e:
+            print(f"LLM enrichment failed ({e}), returning ML-only results")
+            # Graceful degradation — ML confidence still returned
+            enriched = [
+                {
+                    "crop":                      c["crop"],
+                    "confidence":                c["confidence"],
+                    "reason":                    f"Recommended based on soil NPK, temperature ({temperature:.1f}°C), and rainfall data.",
+                    "market_demand":              "Medium",
+                    "estimated_price_per_quintal": 0,
+                    "season_match":              "Good",
+                }
+                for c in ml_candidates
+            ]
 
-    try:
-        raw = await call_groq_llm(user_prompt, system=system_prompt, max_tokens=800)
-        parsed = parse_json_response(raw)
-        
-        if parsed and isinstance(parsed, list) and len(parsed) > 0:
-            return {
-                "success": True,
-                "recommendations": parsed,
-                "context": {
-                    "state": state,
-                    "season": season,
-                    "soil_type": req.soil_type,
-                    "temperature": temperature,
-                    "humidity": humidity,
-                    "rainfall": round(rainfall, 1),
-                    "previous_crop": req.previous_crop,
-                },
-            }
-    except Exception as e:
-        print(f"Groq crop recommendation failed: {e}")
+    # ── 5. Pure LLM fallback if ML pipeline unavailable ──
+    if not enriched:
+        print("ML pipeline unavailable - falling back to pure LLM recommendation")
+        system_prompt = """You are an expert Indian agricultural scientist and crop advisor.
+You MUST respond ONLY with valid JSON. No markdown, no explanations outside JSON."""
+        user_prompt = f"""Recommend the top 5 best crops for this farmer:
+Location: {state}, India | Soil: {req.soil_type} (N={N}, P={P}, K={K}, pH={ph})
+Previous crop: {req.previous_crop or 'None'} | Season: {season}
+Weather: {temperature:.1f}°C, {humidity:.0f}% humidity, {rainfall:.0f}mm rainfall
+RESPOND in {LANG_NAMES.get(req.lang_code, 'English')}.
+Return ONLY JSON array of 5 objects with keys: crop, confidence (70-98), reason, market_demand, estimated_price_per_quintal, season_match."""
+        try:
+            raw    = await call_groq_llm(user_prompt, system=system_prompt, max_tokens=800)
+            parsed = parse_json_response(raw)
+            if parsed and isinstance(parsed, list):
+                enriched = parsed
+        except Exception as e:
+            print(f"Pure LLM fallback failed: {e}")
 
-    # Fallback
+    # ── 6. Static fallback (last resort) ──
+    if not enriched:
+        enriched = [
+            {"crop": "Wheat (गेहूं)",   "confidence": 90, "reason": f"Well-suited for {req.soil_type} soil in {season}.", "market_demand": "High",   "estimated_price_per_quintal": 2275, "season_match": "Good"},
+            {"crop": "Rice (धान)",      "confidence": 85, "reason": "Staple crop with reliable market demand.",           "market_demand": "High",   "estimated_price_per_quintal": 2183, "season_match": "Good"},
+            {"crop": "Mustard (सरसों)", "confidence": 80, "reason": "Low water requirement, good returns.",               "market_demand": "Medium", "estimated_price_per_quintal": 5450, "season_match": "Good"},
+        ]
+
     return {
         "success": True,
-        "recommendations": [
-            {"crop": "Wheat (गेहूं)", "confidence": 90, "reason": f"Well-suited for {req.soil_type} soil in {season}.", "market_demand": "High", "estimated_price_per_quintal": 2275, "season_match": "Good"},
-            {"crop": "Rice (धान)", "confidence": 85, "reason": "Staple crop with reliable market demand.", "market_demand": "High", "estimated_price_per_quintal": 2183, "season_match": "Good"},
-            {"crop": "Mustard (सरसों)", "confidence": 80, "reason": "Low water requirement, good returns.", "market_demand": "Medium", "estimated_price_per_quintal": 5450, "season_match": "Good"},
-        ],
+        "recommendations": enriched,
         "context": {
-            "state": state, "season": season, "soil_type": req.soil_type,
-            "temperature": temperature, "humidity": humidity, "rainfall": round(rainfall, 1),
+            "state":         state,
+            "season":        season,
+            "soil_type":     req.soil_type,
+            "soil_npk":      {"N": N, "P": P, "K": K, "ph": ph},
+            "temperature":   temperature,
+            "humidity":      humidity,
+            "rainfall":      round(rainfall, 1),
             "previous_crop": req.previous_crop,
+            "ml_engine":     crop_rec_pipeline is not None,
         },
     }
 
@@ -1075,6 +1247,7 @@ Use realistic prices based on the MSP baseline and current season demand."""
 class YieldPredictionRequest(BaseModel):
     crop: str = "Wheat"
     state: Optional[str] = None  # Auto-detected from GPS if not provided
+    district: Optional[str] = None # Added for new district-level model
     latitude: float = 30.9
     longitude: float = 75.8
     soil_ph: Optional[float] = None  # Auto from soil type if not provided
@@ -1095,31 +1268,37 @@ async def yield_prediction(req: YieldPredictionRequest):
     # 1. Auto-fetch state from coordinates
     state = req.state or get_state_from_coords(req.latitude, req.longitude)
 
-    # 2. Auto-fetch soil pH from soil type
+    # 2. Auto-fetch soil parameters from soil type
     soil_ph = req.soil_ph
+    soil = SOIL_PROFILES.get(req.soil_type, SOIL_PROFILES["Alluvial"])
     if soil_ph is None and req.soil_type:
-        soil_ph = SOIL_PROFILES.get(req.soil_type, {}).get("ph", 7.0)
+        soil_ph = soil.get("ph", 7.0)
     elif soil_ph is None:
         soil_ph = 7.0
+    
+    soil_n = soil.get("N", 40)
+    soil_p = soil.get("P", 20)
+    soil_k = soil.get("K", 30)
+    organic_carbon = 0.5  # Default approximation
 
-    # 3. Encode state and crop
-    state_enc = STATE_ENCODING.get(state)
-    if state_enc is None:
-        for k, v in STATE_ENCODING.items():
-            if k.lower() == state.lower():
-                state_enc = v
-                break
-        if state_enc is None:
-            state_enc = 21
-
-    crop_enc = CROP_ENCODING.get(req.crop)
-    if crop_enc is None:
-        for k, v in CROP_ENCODING.items():
-            if k.lower() == req.crop.lower():
-                crop_enc = v
-                break
-        if crop_enc is None:
-            crop_enc = 50
+    # 3. Encode state, district, crop using new category mappings
+    state_enc = 0
+    district_enc = 0
+    crop_enc = 0
+    district = req.district or state  # Fallback district to state if missing
+    
+    if yield_category_mappings:
+        state_map = yield_category_mappings.get("State", {})
+        state_match = next((v for k, v in state_map.items() if k.lower() == state.lower()), None)
+        state_enc = int(state_match) if state_match else 0
+        
+        district_map = yield_category_mappings.get("District", {})
+        district_match = next((v for k, v in district_map.items() if k.lower() == district.lower()), None)
+        district_enc = int(district_match) if district_match else 0
+        
+        crop_map = yield_category_mappings.get("Crop", {})
+        crop_match = next((v for k, v in crop_map.items() if k.lower() == req.crop.lower()), None)
+        crop_enc = int(crop_match) if crop_match else 0
 
     # 4. Fetch live weather
     try:
@@ -1134,41 +1313,42 @@ async def yield_prediction(req: YieldPredictionRequest):
         print(f"Weather fetch failed: {e}")
         temp_c, humidity_pct, precip_mm, sunshine_hours = 25.0, 65.0, 50.0, 6.0
 
-    # 5. Try ML model first
-    yield_tonnes = None
-    ml_used = False
+    # 5. Try ML model first (Note: Model predicts Total District Production, NOT per-hectare yield)
+    district_production_tonnes = None
     if yield_predictor is not None:
         try:
             year = datetime.now().year
-            features = np.array([[year, state_enc, crop_enc, req.latitude, req.longitude,
-                                  soil_ph, temp_c, humidity_pct, precip_mm, sunshine_hours]])
-            yield_tonnes = float(yield_predictor.predict(features)[0])
-            yield_tonnes = max(round(yield_tonnes, 2), 0.1)
-            ml_used = True
+            features = np.array([[
+                state_enc, district_enc, crop_enc, req.latitude, req.longitude,
+                soil_n, soil_p, soil_k, organic_carbon, soil_ph,
+                temp_c, humidity_pct, precip_mm, sunshine_hours, year
+            ]])
+            log1p_pred = float(yield_predictor.predict(features)[0])
+            production_thousand_tonnes = np.expm1(log1p_pred)
+            district_production_tonnes = production_thousand_tonnes * 1000
         except Exception as e:
             print(f"ML yield prediction failed: {e}")
 
-    # 6. Fallback to Groq if ML fails
-    if yield_tonnes is None and GROQ_API_KEY:
+    # 6. Use Groq to estimate realistic per-hectare yield 
+    # (Since ML only gives macro district production)
+    yield_tonnes = 2.5
+    if GROQ_API_KEY:
         try:
-            prompt = f"""Estimate the crop yield for:
+            prompt = f"""Estimate the realistic crop yield (tonnes/hectare) for:
 - Crop: {req.crop}
 - State: {state}, India  
 - Weather: {temp_c}°C, {humidity_pct}% humidity, {precip_mm}mm rain
 - Soil pH: {soil_ph}
 - Season: {get_current_season()}
 
-Return ONLY JSON: {{"yield_per_hectare": <number in tonnes>}}
-Use realistic Indian agricultural yield data. No markdown."""
+Return ONLY JSON: {{"yield_per_hectare": <number>}}
+Use realistic Indian agricultural yield averages. No markdown."""
             raw = await call_groq_llm(prompt, max_tokens=100)
             parsed = parse_json_response(raw)
             if parsed:
                 yield_tonnes = float(parsed.get("yield_per_hectare", 2.5))
         except Exception:
             yield_tonnes = 2.5  # Safe fallback
-
-    if yield_tonnes is None:
-        yield_tonnes = 2.5
 
     total_production = round(yield_tonnes * req.land_area_hectares, 2)
 
@@ -1198,7 +1378,8 @@ No markdown."""
         "yield_per_hectare": yield_tonnes,
         "land_area_hectares": req.land_area_hectares,
         "total_production_tonnes": total_production,
-        "model_used": "RandomForestRegressor" if ml_used else "Groq LLM",
+        "district_macro_production_estimate_tonnes": round(district_production_tonnes, 2) if district_production_tonnes else None,
+        "model_used": "Groq LLM (Per-Hectare) + RandomForest (District Macro)",
         "advisory": advisory or f"Maintain proper irrigation and nutrient management for optimal {req.crop} yield.",
         "weather_snapshot": {
             "temperature": temp_c,
@@ -1244,277 +1425,6 @@ def compute_et0(temp_max: float, temp_min: float, sunshine_hours: float, lat: fl
     return round(max(et0, 0.5), 2)
 
 
-# ═══════════════════════════════════════════════════════════════
-# ██  CROP RECOMMENDATION ENDPOINT (RandomForest ML Model)    ██
-# ═══════════════════════════════════════════════════════════════
-
-class CropRecommendationRequest(BaseModel):
-    soil_type: str = "Alluvial"
-    latitude: float = 28.6
-    longitude: float = 77.2
-    lang_code: str = "en"
-
-
-@app.post("/api/crop-recommendation")
-async def crop_recommendation(req: CropRecommendationRequest):
-    """
-    Uses the RandomForest MultiOutputClassifier to recommend crops.
-    Features: N, P, K, temperature, humidity, ph, rainfall
-    Fills soil NPK/pH from lookup, weather from Open-Meteo.
-    Uses Groq LLM to generate reasoning text in the user's language.
-    """
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("EXPO_PUBLIC_GROQ_API_KEY")
-
-    if crop_recommender is None:
-        raise HTTPException(status_code=500, detail="Crop recommendation model not loaded")
-
-    # 1. Get soil profile
-    soil = SOIL_PROFILES.get(req.soil_type, SOIL_PROFILES["Alluvial"])
-
-    # 2. Fetch live weather
-    try:
-        weather = await fetch_open_meteo_weather(req.latitude, req.longitude)
-        temperature = weather["current"]["temperature_2m"]
-        humidity = weather["current"]["relative_humidity_2m"]
-        # Sum of last 7 days precipitation as rainfall proxy
-        rainfall = sum(weather["daily"]["precipitation_sum"][:7]) if weather["daily"].get("precipitation_sum") else 100.0
-    except Exception as e:
-        print(f"Weather fetch failed, using defaults: {e}")
-        temperature = 25.0
-        humidity = 65.0
-        rainfall = 100.0
-
-    # 3. Build feature vector: [N, P, K, temperature, humidity, ph, rainfall]
-    features = np.array([[soil["N"], soil["P"], soil["K"], temperature, humidity, soil["ph"], rainfall]])
-
-    # 4. Predict
-    try:
-        prediction = crop_recommender.predict(features)
-        # MultiOutputClassifier may return multiple outputs
-        if hasattr(prediction, 'shape') and len(prediction.shape) > 1:
-            predicted_crops = [str(p) for p in prediction[0]]
-        else:
-            predicted_crops = [str(prediction[0])]
-
-        # Also get probability if available
-        try:
-            proba = crop_recommender.predict_proba(features)
-            # Get top 3 crops with highest probability
-            top_crops = []
-            if isinstance(proba, list):
-                # MultiOutput: take first output's probabilities
-                p = proba[0][0]
-                classes = crop_recommender.estimators_[0].classes_
-                indices = np.argsort(p)[::-1][:5]
-                for idx in indices:
-                    if p[idx] > 0.01:
-                        top_crops.append({"crop": str(classes[idx]), "confidence": round(float(p[idx]) * 100, 1)})
-            else:
-                # Single output
-                p = proba[0]
-                classes = crop_recommender.classes_
-                indices = np.argsort(p)[::-1][:5]
-                for idx in indices:
-                    if p[idx] > 0.01:
-                        top_crops.append({"crop": str(classes[idx]), "confidence": round(float(p[idx]) * 100, 1)})
-        except Exception:
-            top_crops = [{"crop": c, "confidence": 85.0} for c in predicted_crops]
-
-    except Exception as e:
-        print(f"Prediction failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Model prediction failed: {str(e)}")
-
-    # 5. Use Groq LLM for natural-language reasoning
-    reasoning = []
-    if GROQ_API_KEY and top_crops:
-        try:
-            crop_list = ", ".join([f"{c['crop']} ({c['confidence']}%)" for c in top_crops[:3]])
-            llm_prompt = f"""Based on these conditions:
-- Soil: {req.soil_type} (N={soil['N']}, P={soil['P']}, K={soil['K']}, pH={soil['ph']})
-- Weather: {temperature}°C, {humidity}% humidity, {rainfall}mm recent rainfall
-- Location: lat {req.latitude}, lon {req.longitude}
-
-ML model recommends: {crop_list}
-
-For each of the top 3 crops, give a SHORT one-line reason why it's suitable.
-Respond in {LANG_NAMES.get(req.lang_code, 'English')}.
-Return ONLY a JSON array: [{{"crop": "name", "reason": "short reason"}}]
-No markdown, raw JSON only."""
-
-            async with httpx.AsyncClient(timeout=20.0) as client:
-                llm_resp = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                    json={
-                        "model": "llama-3.3-70b-versatile",
-                        "messages": [{"role": "user", "content": llm_prompt}],
-                        "temperature": 0.3, "max_tokens": 400,
-                    },
-                )
-                if llm_resp.status_code == 200:
-                    raw = llm_resp.json()["choices"][0]["message"]["content"].strip()
-                    try:
-                        reasoning = json.loads(raw)
-                    except json.JSONDecodeError:
-                        import re
-                        m = re.search(r'\[.*\]', raw, re.DOTALL)
-                        if m:
-                            reasoning = json.loads(m.group())
-        except Exception as e:
-            print(f"LLM reasoning failed (non-critical): {e}")
-
-    # 6. Merge ML confidence with LLM reasoning
-    results = []
-    for crop_data in top_crops[:5]:
-        reason_text = ""
-        for r in reasoning:
-            if r.get("crop", "").lower() == crop_data["crop"].lower():
-                reason_text = r.get("reason", "")
-                break
-        results.append({
-            "crop": crop_data["crop"],
-            "confidence": crop_data["confidence"],
-            "reason": reason_text or f"Suitable for {req.soil_type} soil in current weather conditions.",
-        })
-
-    return {
-        "success": True,
-        "recommendations": results,
-        "input_features": {
-            "soil_type": req.soil_type,
-            "N": soil["N"], "P": soil["P"], "K": soil["K"], "pH": soil["ph"],
-            "temperature": temperature, "humidity": humidity, "rainfall": round(rainfall, 1),
-        },
-    }
-
-
-# ═══════════════════════════════════════════════════════════════
-# ██  YIELD PREDICTION ENDPOINT (RandomForestRegressor)       ██
-# ═══════════════════════════════════════════════════════════════
-
-class YieldPredictionRequest(BaseModel):
-    crop: str = "Wheat"
-    state: str = "Punjab"
-    latitude: float = 30.9
-    longitude: float = 75.8
-    soil_ph: float = 7.0
-    land_area_hectares: float = 1.0
-    lang_code: str = "en"
-
-
-@app.post("/api/yield-prediction")
-async def yield_prediction(req: YieldPredictionRequest):
-    """
-    Uses the RandomForestRegressor to predict crop yield (tonnes/hectare).
-    Features: Year, State_Encoded, Crop_Encoded, Latitude, Longitude,
-              Soil pH, weather_temp_c, weather_humidity_pct,
-              weather_precip_mm, weather_sunshine_hours
-    """
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("EXPO_PUBLIC_GROQ_API_KEY")
-
-    if yield_predictor is None:
-        raise HTTPException(status_code=500, detail="Yield prediction model not loaded")
-
-    # 1. Encode state and crop
-    state_enc = STATE_ENCODING.get(req.state)
-    crop_enc = CROP_ENCODING.get(req.crop)
-
-    # If encoding missing, use Groq to find closest match
-    if state_enc is None:
-        # Try case-insensitive match
-        for k, v in STATE_ENCODING.items():
-            if k.lower() == req.state.lower():
-                state_enc = v
-                break
-        if state_enc is None:
-            state_enc = 21  # Default: Uttar Pradesh
-
-    if crop_enc is None:
-        for k, v in CROP_ENCODING.items():
-            if k.lower() == req.crop.lower():
-                crop_enc = v
-                break
-        if crop_enc is None:
-            crop_enc = 50  # Default: Wheat
-
-    # 2. Fetch live weather
-    try:
-        weather = await fetch_open_meteo_weather(req.latitude, req.longitude)
-        temp_c = weather["current"]["temperature_2m"]
-        humidity_pct = weather["current"]["relative_humidity_2m"]
-        precip_mm = sum(weather["daily"]["precipitation_sum"][:7]) if weather["daily"].get("precipitation_sum") else 50.0
-        sunshine_hours = sum([
-            (s / 3600.0) for s in weather["daily"].get("sunshine_duration", [6 * 3600] * 7)[:7]
-        ]) / 7.0  # Average daily sunshine hours
-    except Exception as e:
-        print(f"Weather fetch failed, using defaults: {e}")
-        temp_c = 25.0
-        humidity_pct = 65.0
-        precip_mm = 50.0
-        sunshine_hours = 6.0
-
-    # 3. Build feature vector
-    year = datetime.now().year
-    features = np.array([[year, state_enc, crop_enc, req.latitude, req.longitude,
-                          req.soil_ph, temp_c, humidity_pct, precip_mm, sunshine_hours]])
-
-    # 4. Predict
-    try:
-        yield_tonnes = float(yield_predictor.predict(features)[0])
-        yield_tonnes = max(round(yield_tonnes, 2), 0.1)
-        total_production = round(yield_tonnes * req.land_area_hectares, 2)
-    except Exception as e:
-        print(f"Yield prediction failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Model prediction failed: {str(e)}")
-
-    # 5. Use Groq for advisory text
-    advisory = ""
-    if GROQ_API_KEY:
-        try:
-            llm_prompt = f"""Predicted yield for {req.crop} in {req.state}: {yield_tonnes} tonnes/hectare.
-Weather: {temp_c}°C, {humidity_pct}% humidity, {precip_mm}mm precipitation.
-Give 2-3 SHORT practical tips to maximize this yield.
-Respond in {LANG_NAMES.get(req.lang_code, 'English')}.
-Return ONLY a JSON object: {{"advisory": "your tips as a single paragraph"}}
-No markdown."""
-
-            async with httpx.AsyncClient(timeout=20.0) as client:
-                llm_resp = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                    json={
-                        "model": "llama-3.3-70b-versatile",
-                        "messages": [{"role": "user", "content": llm_prompt}],
-                        "temperature": 0.3, "max_tokens": 300,
-                    },
-                )
-                if llm_resp.status_code == 200:
-                    raw = llm_resp.json()["choices"][0]["message"]["content"].strip()
-                    try:
-                        advisory = json.loads(raw).get("advisory", "")
-                    except json.JSONDecodeError:
-                        import re
-                        m = re.search(r'\{.*\}', raw, re.DOTALL)
-                        if m:
-                            advisory = json.loads(m.group()).get("advisory", "")
-        except Exception as e:
-            print(f"LLM advisory failed (non-critical): {e}")
-
-    return {
-        "success": True,
-        "crop": req.crop,
-        "state": req.state,
-        "yield_per_hectare": yield_tonnes,
-        "land_area_hectares": req.land_area_hectares,
-        "total_production_tonnes": total_production,
-        "advisory": advisory or f"Maintain proper irrigation and nutrient management for optimal {req.crop} yield.",
-        "weather_snapshot": {
-            "temperature": temp_c,
-            "humidity": humidity_pct,
-            "precipitation_mm": round(precip_mm, 1),
-            "sunshine_hours": round(sunshine_hours, 1),
-        },
-    }
 
 
 # ═══════════════════════════════════════════════════════════════

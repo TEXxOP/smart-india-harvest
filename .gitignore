@@ -22,3 +22,53 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# ── Model artifacts ──
+# backend/crop_recommendation_model.joblib, backend/yield_model/ and
+# backend/disease_model/ (model.onnx + preprocess.json) are COMMITTED on purpose
+# — Render's build needs them and prefetch_models.py fails the build if they are
+# absent. Do not add them here.
+#
+# backend/RandomForest.pkl, backend/crop_yield_model.pkl (85 MB) and
+# backend/model_info.json are ALREADY TRACKED and describe the superseded
+# 10-feature yield pipeline that main.py no longer loads. .gitignore cannot
+# untrack them; that needs `git rm --cached <file>` (history keeps the blobs
+# either way).
+
+# ── ML training scratch ──
+# Vendored interpreters and duplicated model copies. The training sources
+# themselves (notebooks, CSVs, crop_rec/src) are left trackable on purpose —
+# the paper cites them.
+.pydeps/
+crop prediction/.pydeps/
+crop prediction/saved_model/
+crop prediction/notebook_execution.log
+crop prediction/notebook_execution.err.log
+crop_rec/models/
+.ipynb_checkpoints/
+
+# ── LaTeX build artifacts ──
+# figures/ is NOT ignored — research_paper.tex \includegraphics from it, so the
+# paper cannot be rebuilt from a fresh clone without those files.
+build_report/
+tectonic.zip
+tectonic_bin/
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+
+# ── Local machine leftovers ──
+ipconfig_output.txt
+dummy.txt
+
+# ── HuggingFace cache ──
+# Only populated on a dev machine now, by export_disease_onnx.py. The deployed
+# backend never touches the Hub.
+backend/.hf_cache/
+.hf_cache/
