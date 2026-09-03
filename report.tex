@@ -1,0 +1,1472 @@
+\documentclass[12pt,a4paper]{report}
+
+% Preamble
+\usepackage[a4paper,left=1.5in,right=1in,top=1in,bottom=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{amsmath,amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{float}
+\usepackage{placeins}
+
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric,shapes.multipart,arrows.meta,positioning,fit,calc,backgrounds}
+
+% Document styling
+\setlength{\parindent}{0.5in}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{3em}
+\setlength{\headheight}{14pt}
+\renewcommand{\arraystretch}{1.18}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+\sloppy
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\newcommand{\ProjectName}{Smart India Harvest}
+\newcommand{\SystemName}{AgriDSS}
+\newcommand{\FrameworkName}{HARVEST}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small B.Tech Project Report}
+\rhead{\small Smart India Harvest}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering\fontsize{16}{18}\selectfont}
+  {\chaptertitlename\ \thechapter}{10pt}{\fontsize{16}{18}\selectfont}
+\titlespacing*{\chapter}{0pt}{24pt}{18pt}
+
+\titleformat{\section}
+  {\normalfont\bfseries\fontsize{14}{16}\selectfont}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{12}{14}\selectfont}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\itshape\normalsize}{\thesubsubsection}{1em}{}
+
+\setlength{\cftbeforechapskip}{6pt}
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue,
+  pdftitle={Smart India Harvest Project Report},
+  pdfauthor={Team Smart India Harvest}
+}
+
+\begin{document}
+
+% Title Page
+\begin{titlepage}
+\centering
+\vspace*{0.5cm}
+
+{\Large \textbf{\ProjectName}}\\[0.25cm]
+{\large \textbf{\SystemName: An Integrated Agricultural Decision Support System}}\\[0.35cm]
+\HRule\\[0.45cm]
+
+{\normalsize A Project Report submitted in partial fulfillment of the\\
+requirements for the award of the degree of}\\[0.55cm]
+
+{\large \textbf{BACHELOR OF TECHNOLOGY}}\\[0.2cm]
+{\normalsize in}\\[0.2cm]
+{\large \textbf{COMPUTER SCIENCE AND ENGINEERING}}\\[0.75cm]
+
+{\normalsize by}\\[0.45cm]
+
+\begin{tabular}{p{6cm}p{5cm}}
+\textbf{Name} & \textbf{Roll No.} \\[4pt]
+Harish Saini & \underline{\hspace{3.2cm}} \\
+Navya Bhumbak & \underline{\hspace{3.2cm}} \\
+Anisha Gupta & \underline{\hspace{3.2cm}} \\
+Bhavya Mittal & \underline{\hspace{3.2cm}} \\
+\end{tabular}\\[0.75cm]
+
+{\normalsize under the guidance of}\\[0.25cm]
+{\large \textbf{\underline{\hspace{6.5cm}}}}\\[0.15cm]
+{\normalsize Project Guide}\\[0.8cm]
+
+{\large \textbf{School of Computer Science}}\\[0.1cm]
+{\normalsize University of Petroleum and Energy Studies}\\[0.1cm]
+{\normalsize Bidholi, Via Prem Nagar, Dehradun, Uttarakhand}\\[0.3cm]
+{\normalsize May 2025}
+
+\vfill
+\end{titlepage}
+
+% Declaration
+\chapter*{Candidate's Declaration}
+\addcontentsline{toc}{chapter}{Candidate's Declaration}
+\thispagestyle{fancy}
+\doublespacing
+
+We hereby certify that the project work entitled \textbf{``Smart India Harvest: An Integrated Agricultural Decision Support System''} submitted in partial fulfillment of the requirements for the award of the degree of \textbf{Bachelor of Technology in Computer Science and Engineering} at the School of Computer Science, University of Petroleum and Energy Studies, Dehradun, is an authentic record of our work carried out during the period from \textbf{January 2025 to May 2025}.
+
+The work presented in this report was completed by our team under the guidance of the project supervisor. The system, documentation, experiments, and implementation described here have not been submitted by us for the award of any other degree or diploma at this or any other university.
+
+\vspace{1.8cm}
+
+\begin{flushright}
+\begin{tabular}{p{6cm}p{5cm}}
+Harish Saini & Roll No. \underline{\hspace{2.8cm}} \\[8pt]
+Navya Bhumbak & Roll No. \underline{\hspace{2.8cm}} \\[8pt]
+Anisha Gupta & Roll No. \underline{\hspace{2.8cm}} \\[8pt]
+Bhavya Mittal & Roll No. \underline{\hspace{2.8cm}} \\
+\end{tabular}
+\end{flushright}
+
+\vspace{1.4cm}
+\noindent Date: \underline{\hspace{3cm}} \hfill Place: Dehradun
+
+\singlespacing
+
+% Certificate
+\chapter*{Certificate}
+\addcontentsline{toc}{chapter}{Certificate}
+\thispagestyle{fancy}
+\doublespacing
+
+This is to certify that the project report entitled \textbf{``Smart India Harvest: An Integrated Agricultural Decision Support System''} submitted by \textbf{Harish Saini, Navya Bhumbak, Anisha Gupta, and Bhavya Mittal} is a bonafide record of the project work carried out under my supervision. The report presents the design, implementation, and evaluation of a working mobile and backend platform for agricultural decision support.
+
+The work is found suitable for submission in partial fulfillment of the requirements for the award of the degree of \textbf{Bachelor of Technology in Computer Science and Engineering}.
+
+\vspace{2.3cm}
+
+\noindent Date: \underline{\hspace{3cm}} \hfill \textbf{\underline{\hspace{5cm}}}\\
+\hfill Project Guide
+
+\singlespacing
+
+% Acknowledgement
+\chapter*{Acknowledgement}
+\addcontentsline{toc}{chapter}{Acknowledgement}
+\thispagestyle{fancy}
+\doublespacing
+
+We would like to express our sincere gratitude to our project guide for the constant support, feedback, and encouragement provided throughout the development of \ProjectName. The guidance helped us convert an idea into a working decision support system with a clear technical direction and a practical agricultural purpose.
+
+We are thankful to the School of Computer Science, University of Petroleum and Energy Studies, for providing the environment, facilities, and academic support needed to complete this work. We also thank our course coordinators and faculty members for their suggestions during reviews and demonstrations.
+
+We acknowledge the open-source tools and developer communities behind FastAPI, React Native, Expo, scikit-learn, PyTorch, Hugging Face Transformers, SQLModel, Open-Meteo, and the Groq SDK. These technologies gave us the foundation to build a usable full-stack system instead of a collection of isolated prototypes.
+
+We also thank the UPES CSI Smart India Hackathon 2025 team and reviewers. The project was recognized among the Top 10, and that experience helped us sharpen the product vision, farmer workflow, and implementation priorities.
+
+Finally, we thank our families and friends for their support and patience while we worked through design, model training, backend debugging, mobile testing, and report preparation.
+
+\vspace{1.4cm}
+\begin{center}
+\begin{tabular}{llll}
+Harish Saini & Navya Bhumbak & Anisha Gupta & Bhavya Mittal
+\end{tabular}
+\end{center}
+
+\singlespacing
+
+% Abstract
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\thispagestyle{fancy}
+\doublespacing
+
+Indian farmers, especially small and marginal farmers, make high-impact decisions under uncertainty. A single season can require choices about crop selection, pest control, irrigation, yield expectations, market timing, and government support. Most digital agriculture tools solve only one of these problems at a time. Many of them also assume stable internet connectivity, English fluency, and the ability to interpret raw model outputs. These assumptions do not match the daily reality of many rural users.
+
+\textbf{\ProjectName} is an implemented agricultural decision support system that brings multiple advisory functions into one mobile platform. The system combines crop recommendation, plant disease detection, yield prediction, ET$_0$-based irrigation guidance, mandi price support, government scheme information, offline knowledge access, and a 7-day farm action plan. The mobile application is built using React Native and Expo, while the backend uses FastAPI, Python, SQLModel, PostgreSQL, scikit-learn, PyTorch, Hugging Face Transformers, Open-Meteo, and Groq-hosted language and speech models.
+
+The core technical idea is formalized as the \textbf{\FrameworkName} framework, which stands for Hybrid Agri-intelligence with Real-time Verification, ET$_0$ Scheduling, and Transformer-based Diagnostics. It uses a shared context pipeline to collect GPS location, soil profile, crop details, season, weather, and user language before running the relevant models. The crop recommendation model is a tuned Random Forest classifier trained on 2,200 samples across 22 crops, with 99.3\% test accuracy and 0.993 macro F1 score. The yield training pipeline uses 27,303 district-level records, a log1p target transformation, and a Random Forest Regressor with $R^2 = 0.9410$. Disease detection uses a Vision Transformer model for 38 crop leaf classes, and irrigation uses the Hargreaves equation with crop coefficient based water requirement estimation.
+
+The application supports English, Hindi, and Punjabi interfaces, voice commands through Whisper Large V3 Turbo, text-to-speech responses, TTL-based caching, offline disease image queuing, and an embedded trilingual knowledge base. The result is not just a machine learning demo, but an end to end farmer-facing system that can keep working even when connectivity is weak.
+
+\singlespacing
+\vspace{0.8cm}
+\noindent\textbf{Keywords:} Precision Agriculture, Crop Recommendation, Plant Disease Detection, Yield Prediction, Smart Irrigation, Vision Transformer, Random Forest, SHAP, Offline-First Mobile App, Multilingual AI, Agricultural Decision Support System.
+
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+
+% Abbreviations
+\chapter*{List of Abbreviations}
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3cm}p{10cm}}
+\toprule
+\textbf{Term} & \textbf{Meaning} \\
+\midrule
+AgriDSS & Agricultural Decision Support System \\
+AI & Artificial Intelligence \\
+API & Application Programming Interface \\
+ASR & Automatic Speech Recognition \\
+ET$_0$ & Reference Evapotranspiration \\
+ET$_c$ & Crop Evapotranspiration \\
+GPS & Global Positioning System \\
+HARVEST & Hybrid Agri-intelligence with Real-time Verification, ET$_0$ Scheduling, and Transformer-based Diagnostics \\
+K$_c$ & Crop Coefficient \\
+LLM & Large Language Model \\
+ML & Machine Learning \\
+NPK & Nitrogen, Phosphorus, and Potassium \\
+RF & Random Forest \\
+SHAP & SHapley Additive exPlanations \\
+TTS & Text-to-Speech \\
+ViT & Vision Transformer \\
+\bottomrule
+\end{tabular}
+\end{table}
+\clearpage
+
+\chapter{Introduction}
+\doublespacing
+
+\section{Background}
+
+Agriculture remains one of the most important sectors of the Indian economy. It provides livelihood support to a large share of the population and directly affects food security, rural income, water use, and local markets. At the same time, farming has become harder to manage because climate patterns are less predictable, pest pressure changes quickly, and input costs continue to rise.
+
+For a farmer, the difficult part is not only the amount of information available. The difficult part is knowing what information matters today. Soil type, rainfall, current temperature, humidity, crop stage, land size, disease symptoms, past crop choice, and local market conditions all interact. A crop that is suitable in one region may fail in another. A pesticide that works in one situation may be wasteful or unsafe if rain is expected. Irrigation may be needed urgently on one day and unnecessary the next day because of rainfall.
+
+Modern artificial intelligence can help with this decision load, but only if it is packaged in a way farmers can actually use. A model that gives an English output without explanation is not enough. A model that needs perfect network access is not enough. A disease classifier that gives only a class label is not enough. The value of an agricultural decision support system comes from joining model prediction, local context, explanation, timing, and accessibility.
+
+\section{Problem Statement}
+
+Smallholder farmers frequently face the following problems:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Fragmented tools:} Weather, disease diagnosis, crop recommendation, yield estimation, and market information are usually available through different systems.
+  \item \textbf{Language barriers:} Many advisory systems assume that users can read English technical output.
+  \item \textbf{Connectivity issues:} Cloud-only applications become unreliable in rural areas with weak or intermittent mobile internet.
+  \item \textbf{Late disease response:} Crop disease identification often depends on manual inspection or delayed expert visits.
+  \item \textbf{Water wastage:} Irrigation decisions are often based on habit instead of weather-driven crop water demand.
+  \item \textbf{Low trust in model output:} Farmers need reasons, confidence, and action steps rather than black-box predictions.
+\end{itemize}
+
+The problem addressed in this project is therefore the design and implementation of a usable, multilingual, offline-aware agricultural decision support system that can integrate several advisory modules around a common farmer context.
+
+\section{Project Objectives}
+
+The objectives of \ProjectName\ are:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Build a mobile application that farmers can use for crop, disease, yield, weather, irrigation, mandi, scheme, and action plan support.
+  \item Implement a FastAPI backend that exposes reliable agricultural advisory endpoints.
+  \item Train and integrate machine learning models for crop recommendation and yield prediction.
+  \item Integrate a Vision Transformer based disease detection model for crop leaf images.
+  \item Use live weather and GPS context to reduce manual data entry.
+  \item Provide language support for English, Hindi, and Punjabi.
+  \item Add voice input and text-to-speech output for hands-free field use.
+  \item Implement an offline-first layer using cache, queue, and embedded knowledge base patterns.
+  \item Present model outputs with clear confidence, source attribution, and farmer-friendly explanations.
+\end{enumerate}
+
+\section{Scope of the Project}
+
+The project focuses on a working prototype and academic demonstration of an integrated farmer advisory system. It covers mobile app screens, backend API services, database integration, ML inference, weather integration, LLM-generated advisory text, multilingual interface support, and offline behavior.
+
+The system is not a replacement for certified agronomists, laboratory soil tests, or official government advisories. It is designed as a practical decision aid that can guide farmers toward better day-to-day choices and help them decide when expert support is needed.
+
+\section{Major Contributions}
+
+The main contributions of this project are:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item A working React Native mobile app with 18 routes covering major farm workflows.
+  \item A FastAPI backend with endpoints for onboarding, disease detection, voice commands, crop recommendation, mandi prices, yield prediction, irrigation dashboard, action planning, and translation support.
+  \item A tuned Random Forest crop recommendation pipeline with 99.3\% test accuracy across 22 crop classes.
+  \item A district-level yield modeling pipeline using 27,303 rows, log1p target transformation, and tree-based model comparison.
+  \item ET$_0$ based smart irrigation using live Open-Meteo weather and crop coefficient rules.
+  \item Offline-first architecture with AsyncStorage caching, offline disease image queueing, and a trilingual knowledge base.
+  \item A multilingual voice interface using Groq Whisper for transcription and LLaMA 3.3 70B for intent routing.
+\end{itemize}
+
+\section{Report Organization}
+
+Chapter 2 reviews the existing system landscape, user requirements, and feasibility. Chapter 3 describes the proposed system design. Chapter 4 explains the algorithms and mathematical models. Chapter 5 presents implementation details. Chapter 6 discusses testing, outputs, and results. Chapter 7 covers deployment, project management, and impact. Chapter 8 presents limitations and future enhancements. The final chapter concludes the report.
+
+\singlespacing
+
+\chapter{System Analysis}
+\doublespacing
+
+\section{Existing System Review}
+
+The existing agricultural technology landscape has many useful tools, but most of them solve narrow problems. Some applications provide weather forecasts. Some provide crop prices. Some research prototypes classify plant diseases from images. Some models recommend crops based on soil and climate parameters. These pieces are valuable, but farmers do not experience farm decisions in separate boxes.
+
+For example, crop selection is connected to soil type, current weather, expected rainfall, previous crop, local price, and season. Disease management is connected to image diagnosis, current humidity, rain probability, spray safety, and treatment availability. Irrigation is connected to temperature, crop type, growth stage, rainfall, soil water retention, and land area. A system that ignores these links can give advice that is technically correct but practically incomplete.
+
+\section{Gaps Identified}
+
+\begin{table}[H]
+\centering
+\caption{Gaps in Existing Agricultural Advisory Systems}
+\label{tab:gaps}
+\small
+\begin{tabular}{p{3.4cm}p{4.7cm}p{4.7cm}}
+\toprule
+\textbf{Gap} & \textbf{Typical Situation} & \textbf{Project Response} \\
+\midrule
+Integration gap & Separate tools for weather, disease, irrigation, and crop choice & Unified mobile app with shared context and linked backend modules \\
+Language gap & English-first interfaces and technical outputs & Interface and responses in English, Hindi, and Punjabi \\
+Connectivity gap & Cloud-only behavior with no fallback & Cache, offline queue, and embedded knowledge base \\
+Trust gap & Raw predictions without explanation & Confidence scores, reasoning, source attribution, and advisory text \\
+Data entry burden & Farmer manually enters many parameters & GPS, soil lookup, season logic, and live weather auto-fetching \\
+Action gap & Advice is informative but not scheduled & 7-day action plan with timing, priority, and weather safety checks \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Stakeholders}
+
+The main stakeholders are:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Farmers:} Primary users who need practical decisions on crops, disease, irrigation, and market timing.
+  \item \textbf{Agricultural advisors:} Experts who may use the system as a first-level diagnostic and planning aid.
+  \item \textbf{Government and extension workers:} Users who can share scheme information and promote data-driven advisories.
+  \item \textbf{Developers and maintainers:} Team members responsible for backend reliability, mobile updates, model refreshes, and API configuration.
+  \item \textbf{Academic evaluators:} Reviewers assessing the project design, implementation, model use, and social relevance.
+\end{itemize}
+
+\section{Functional Requirements}
+
+\begin{longtable}{p{2.2cm}p{11cm}}
+\caption{Functional Requirements}\\
+\toprule
+\textbf{ID} & \textbf{Requirement} \\
+\midrule
+FR1 & The user shall be able to select the application language from English, Hindi, and Punjabi. \\
+FR2 & The user shall be able to sign up, log in, and persist a local session. \\
+FR3 & The user shall be able to complete farm onboarding with land size, soil type, previous crop, and farm status. \\
+FR4 & The system shall fetch or infer weather, state, soil values, season, and crop context wherever possible. \\
+FR5 & The system shall recommend crops using a trained ML model and enrich results with reasoning. \\
+FR6 & The system shall detect crop disease from a leaf image and return top predictions with confidence scores. \\
+FR7 & The system shall estimate yield and provide advisory tips for improving production. \\
+FR8 & The system shall generate an irrigation dashboard using ET$_0$, crop coefficients, rainfall, and land area. \\
+FR9 & The system shall show mandi price guidance for regional crops. \\
+FR10 & The system shall generate a 7-day action plan with tasks, timing, urgency, and weather-aware restrictions. \\
+FR11 & The system shall provide an AI chat assistant for farming queries. \\
+FR12 & The system shall accept voice commands and navigate to the relevant screen. \\
+FR13 & The system shall cache data and provide offline knowledge when the network is unavailable. \\
+FR14 & The system shall queue disease detection requests when the user captures an image offline. \\
+\bottomrule
+\end{longtable}
+
+\section{Non-Functional Requirements}
+
+\begin{table}[H]
+\centering
+\caption{Non-Functional Requirements}
+\label{tab:nfr}
+\begin{tabular}{p{3cm}p{10.5cm}}
+\toprule
+\textbf{Quality} & \textbf{Requirement} \\
+\midrule
+Usability & The app should use simple screens, clear actions, understandable labels, and farmer-friendly responses. \\
+Reliability & Backend endpoints should return structured responses and fallback outputs when external services fail. \\
+Performance & Tabular ML inference should be fast enough for interactive mobile use. Image and LLM requests should provide loading states. \\
+Accessibility & The app should support regional language use, voice input, and speech output. \\
+Maintainability & Services should be separated into backend endpoints, mobile services, screens, and context providers. \\
+Scalability & New crops, languages, schemes, and disease classes should be addable without redesigning the whole system. \\
+Security & API keys and database credentials should be stored in environment variables rather than hardcoded in the report or committed files. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Feasibility Study}
+
+\subsection{Technical Feasibility}
+
+The project is technically feasible because the chosen technologies are mature and compatible. React Native and Expo support cross-platform mobile development. FastAPI provides a clean REST API layer. scikit-learn and PyTorch support the required ML models. Open-Meteo provides weather data without an API key. Groq provides low-latency LLM and speech endpoints. PostgreSQL through Neon supports persistent farm profile storage.
+
+\subsection{Operational Feasibility}
+
+The application follows natural farmer workflows: check weather, capture leaf image, view recommendations, plan irrigation, ask a question, and review action tasks. The system reduces manual input by auto-fetching context and using stored farm profile data. This makes the system more realistic for repeated use.
+
+\subsection{Economic Feasibility}
+
+The project uses mostly open-source frameworks and free or low-cost APIs. The main recurring costs are server hosting, database hosting, and LLM or speech usage. For a student prototype and hackathon-scale deployment, the cost is manageable.
+
+\section{Comparative Positioning}
+
+\begin{table}[H]
+\centering
+\caption{Comparison with Typical Agricultural Tools}
+\label{tab:comparison}
+\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{4.2cm}ccccc}
+\toprule
+\textbf{Capability} & \textbf{Smart India Harvest} & \textbf{Weather App} & \textbf{Disease App} & \textbf{Market App} & \textbf{Research Model} \\
+\midrule
+Crop recommendation & \checkmark & No & No & No & Sometimes \\
+Disease detection & \checkmark & No & \checkmark & No & Sometimes \\
+Yield prediction & \checkmark & No & No & No & Sometimes \\
+Smart irrigation & \checkmark & No & No & No & Sometimes \\
+Mandi support & \checkmark & No & No & \checkmark & No \\
+7-day action plan & \checkmark & No & No & No & No \\
+Multilingual UI & \checkmark & Sometimes & Sometimes & Sometimes & No \\
+Voice navigation & \checkmark & No & No & No & No \\
+Offline cache and queue & \checkmark & Sometimes & Rare & Rare & No \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\singlespacing
+
+\chapter{Proposed System Design}
+\doublespacing
+
+\section{Overview of the Proposed System}
+
+\ProjectName\ is designed as a three-layer system. The mobile application handles user interaction, offline behavior, screen navigation, local cache, voice recording, and result display. The backend handles API routing, database access, ML inference, weather fetching, LLM calls, and advisory generation. External services provide weather, speech transcription, language reasoning, and database hosting.
+
+The system avoids asking the farmer for every technical value. Instead, it builds a context object from location, selected soil type, previous crop, current crop, land area, sowing date, season, weather, and language. This context is then reused across modules.
+
+\section{High-Level Architecture}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  block/.style={rectangle,draw,rounded corners=4pt,align=center,minimum width=3.2cm,minimum height=1cm,font=\small},
+  small/.style={rectangle,draw,rounded corners=3pt,align=center,minimum width=2.8cm,minimum height=0.75cm,font=\scriptsize},
+  arrow/.style={-{Stealth},thick}
+]
+
+\node[block,fill=blue!12] (mobile) at (0,0) {React Native / Expo\\Mobile Application};
+\node[small,fill=blue!5] (ui) at (-3,-1.5) {18 Screens\\Navigation};
+\node[small,fill=blue!5] (voice) at (0,-1.5) {Voice and TTS\\Audio Services};
+\node[small,fill=blue!5] (offline) at (3,-1.5) {Offline Cache\\Queue and KB};
+
+\node[block,fill=green!12] (api) at (0,-3.5) {FastAPI Backend\\REST Gateway};
+\node[small,fill=green!5] (context) at (-4,-5) {Context Builder\\GPS, Soil, Weather};
+\node[small,fill=green!5] (routes) at (0,-5) {API Endpoints\\Advisory Modules};
+\node[small,fill=green!5] (fallback) at (4,-5) {Fallback Logic\\ML, LLM, Static};
+
+\node[block,fill=orange!12] (ml) at (-4,-7.3) {ML and Rules};
+\node[small,fill=orange!5] (crop) at (-7,-8.8) {Random Forest\\Crop Recommendation};
+\node[small,fill=orange!5] (disease) at (-3.8,-8.8) {Vision Transformer\\Disease Detection};
+\node[small,fill=orange!5] (yield) at (-0.6,-8.8) {Random Forest\\Yield Prediction};
+\node[small,fill=orange!5] (irrig) at (2.6,-8.8) {ET$_0$ and K$_c$\\Irrigation};
+
+\node[block,fill=purple!12] (ext) at (5.6,-7.3) {External Services};
+\node[small,fill=purple!5] (groq) at (5,-8.8) {Groq\\LLaMA and Whisper};
+\node[small,fill=purple!5] (meteo) at (8.1,-8.8) {Open-Meteo\\Weather API};
+\node[small,fill=purple!5] (neon) at (6.6,-10.1) {Neon PostgreSQL\\Farm Profiles};
+
+\draw[arrow] (mobile) -- (api);
+\draw[arrow] (ui) -- (mobile);
+\draw[arrow] (voice) -- (mobile);
+\draw[arrow] (offline) -- (mobile);
+\draw[arrow] (api) -- (context);
+\draw[arrow] (api) -- (routes);
+\draw[arrow] (api) -- (fallback);
+\draw[arrow] (routes) -- (ml);
+\draw[arrow] (routes) -- (ext);
+\draw[arrow] (ml) -- (crop);
+\draw[arrow] (ml) -- (disease);
+\draw[arrow] (ml) -- (yield);
+\draw[arrow] (ml) -- (irrig);
+\draw[arrow] (ext) -- (groq);
+\draw[arrow] (ext) -- (meteo);
+\draw[arrow] (ext) -- (neon);
+
+\end{tikzpicture}
+}
+\caption{High-level architecture of Smart India Harvest.}
+\label{fig:architecture}
+\end{figure}
+
+\section{Main Modules}
+
+\subsection{Authentication and Onboarding}
+
+The mobile application provides language selection, sign up, login, biometric setup, and onboarding. The farm onboarding flow collects land size, land unit, soil type, previous crop, and current farm status. These values are stored and later used by recommendation, irrigation, yield, and action plan modules.
+
+\subsection{Home Dashboard}
+
+The home screen acts as the entry point to major workflows. It shows a farmer greeting, weather summary, active crop information, crop health status, and quick cards for disease detection, crop management, yield prediction, agricultural knowledge, government schemes, mandi prices, and action plans.
+
+\subsection{Crop Recommendation}
+
+The crop recommendation module uses soil type, GPS location, season, previous crop, and live weather. The backend maps the soil type to NPK and pH values, fetches weather from Open-Meteo, predicts the top crops using the Random Forest model, and enriches the output with farmer-friendly reasoning.
+
+\subsection{Disease Detection}
+
+The disease module allows the user to capture or upload a leaf image. If the device is online, the image is sent to the backend endpoint \texttt{/api/detect-disease}. The backend runs ViT inference and returns the top five predictions. The mobile app maps the detected label to multilingual disease descriptions and remedies, caches the result, and can read the guidance aloud.
+
+\subsection{Yield Prediction}
+
+The yield module combines crop, state, district, GPS coordinates, soil data, weather, and current year. The trained model estimates district-level production in log scale and converts it back with the exponential inverse. The system also uses the LLM to provide a practical per-hectare estimate and advisory tips because the ML model is trained on macro district production.
+
+\subsection{Smart Irrigation}
+
+The irrigation module estimates reference evapotranspiration using Hargreaves temperature inputs and a latitude-based radiation approximation. It multiplies ET$_0$ by crop coefficient K$_c$, subtracts effective rainfall, and converts millimeters of water into liters for the farmer's land area.
+
+\subsection{Mandi Prices}
+
+The mandi module provides regional price guidance for crops relevant to the farmer's location. It uses the selected or detected state and returns price, trend, and market demand style information for the user.
+
+\subsection{7-Day Action Plan}
+
+The action plan module computes crop stage from sowing date, fetches 7-day weather, calculates daily irrigation need, identifies rainy and spray-safe days, and produces practical tasks. When the LLM is available, it generates a structured weekly plan. If it fails, a rule-based fallback still creates irrigation, monitoring, and spray tasks.
+
+\subsection{AI Chat and Voice Assistant}
+
+The AI chat screen works as a farming assistant called Krishi Mitra. The voice assistant records audio through Expo AV, sends it to the backend, transcribes it using Whisper Large V3 Turbo, detects intent using LLaMA 3.3 70B, and returns a screen navigation target with a short response.
+
+\section{Use Case Diagram}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+  actor/.style={circle,draw,fill=blue!10,minimum size=1.15cm,align=center,font=\small\bfseries},
+  usecase/.style={ellipse,draw,fill=green!10,minimum width=3.6cm,minimum height=0.85cm,align=center,font=\small},
+  system/.style={rectangle,draw,rounded corners=6pt,fill=gray!5,inner sep=18pt},
+  link/.style={thick}
+]
+\node[actor] (farmer) at (0,0) {Farmer};
+\node[actor] (admin) at (11,0) {Backend\\Services};
+
+\node[usecase] (u1) at (5.5,4) {Complete Farm Onboarding};
+\node[usecase] (u2) at (5.5,2.8) {Get Crop Recommendation};
+\node[usecase] (u3) at (5.5,1.6) {Detect Plant Disease};
+\node[usecase] (u4) at (5.5,0.4) {Predict Yield};
+\node[usecase] (u5) at (5.5,-0.8) {Plan Irrigation};
+\node[usecase] (u6) at (5.5,-2.0) {View Mandi and Schemes};
+\node[usecase] (u7) at (5.5,-3.2) {Use Voice Assistant};
+
+\begin{pgfonlayer}{background}
+  \node[system,fit=(u1)(u2)(u3)(u4)(u5)(u6)(u7),label={[font=\bfseries]above:Smart India Harvest}] {};
+\end{pgfonlayer}
+
+\draw[link] (farmer) -- (u1);
+\draw[link] (farmer) -- (u2);
+\draw[link] (farmer) -- (u3);
+\draw[link] (farmer) -- (u4);
+\draw[link] (farmer) -- (u5);
+\draw[link] (farmer) -- (u6);
+\draw[link] (farmer) -- (u7);
+
+\draw[link,dashed] (u2) -- (admin);
+\draw[link,dashed] (u3) -- (admin);
+\draw[link,dashed] (u4) -- (admin);
+\draw[link,dashed] (u5) -- (admin);
+\draw[link,dashed] (u7) -- (admin);
+\end{tikzpicture}
+}
+\caption{Use case diagram showing farmer interactions with the system.}
+\label{fig:usecase}
+\end{figure}
+
+\section{Data Flow}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={rectangle,draw,rounded corners=4pt,minimum width=2.8cm,minimum height=0.9cm,align=center,font=\small},
+  arrow/.style={-{Stealth},thick}
+]
+\node[box,fill=blue!10] (input) at (0,0) {Farmer Input\\Crop, Soil, Image, Voice};
+\node[box,fill=blue!10] (gps) at (0,-1.5) {GPS Coordinates};
+\node[box,fill=green!10] (context) at (4,-0.75) {Context Builder\\State, Season, Soil, Weather};
+\node[box,fill=orange!10] (models) at (8,-0.75) {Models and Rules\\RF, ViT, ET$_0$, LLM};
+\node[box,fill=purple!10] (response) at (12,-0.75) {Mobile Output\\Advice, Score, Tasks};
+\node[box,fill=gray!10] (cache) at (8,-2.5) {Cache and Queue\\Offline Support};
+
+\draw[arrow] (input) -- (context);
+\draw[arrow] (gps) -- (context);
+\draw[arrow] (context) -- (models);
+\draw[arrow] (models) -- (response);
+\draw[arrow] (models) -- (cache);
+\draw[arrow] (cache) -- (response);
+\end{tikzpicture}
+}
+\caption{Shared context and advisory data flow.}
+\label{fig:dataflow}
+\end{figure}
+
+\section{Database Design}
+
+The current persistent database stores farm profiles using SQLModel and PostgreSQL. More entities such as disease history, saved recommendations, and action logs can be added later.
+
+\begin{table}[H]
+\centering
+\caption{FarmProfile Database Schema}
+\label{tab:dbschema}
+\small
+\begin{tabular}{p{3.6cm}p{3.2cm}p{6.1cm}}
+\toprule
+\textbf{Field} & \textbf{Type} & \textbf{Purpose} \\
+\midrule
+\texttt{id} & Integer & Primary key \\
+\texttt{user\_id} & String & User identifier with index \\
+\texttt{land\_size} & Float & Farm size value \\
+\texttt{land\_unit} & String & Unit such as acre, hectare, or beegha \\
+\texttt{soil\_type} & Optional string & Soil category selected in onboarding \\
+\texttt{previous\_crop} & Optional string & Previous crop for context \\
+\texttt{harvest\_date} & Optional string & Harvest date when available \\
+\texttt{current\_status} & String & Empty field or growing status \\
+\texttt{created\_at} & Datetime & Profile creation timestamp \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{API Design}
+
+\begin{table}[H]
+\centering
+\caption{Backend API Endpoints}
+\label{tab:api}
+\footnotesize
+\begin{tabular}{p{1.8cm}p{4.2cm}p{7.2cm}}
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Purpose} \\
+\midrule
+GET & \texttt{/} & Root health message \\
+GET & \texttt{/api/health} & Backend and model status \\
+POST & \texttt{/api/onboarding} & Create or update a farm profile \\
+GET & \texttt{/api/farm-profile/}\newline\texttt{\{user\_id\}} & Retrieve farm profile \\
+POST & \texttt{/api/detect-disease} & Upload leaf image for disease prediction \\
+GET & \texttt{/api/model-labels} & Return disease model labels \\
+GET & \texttt{/api/translations/}\newline\texttt{\{lang\_code\}} & Return UI translations \\
+POST & \texttt{/api/voice} & Transcribe audio and classify voice intent \\
+POST & \texttt{/api/}\newline\texttt{crop-recommendation} & Generate ML and LLM crop recommendations \\
+GET & \texttt{/api/mandi-prices} & Generate regional mandi price guidance \\
+POST & \texttt{/api/yield-prediction} & Predict crop yield and advisory tips \\
+GET & \texttt{/api/irrigation/}\newline\texttt{dashboard} & Return ET$_0$ based irrigation dashboard \\
+POST & \texttt{/api/action-plan} & Generate 7-day crop action plan \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Offline-First State Design}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+  state/.style={rectangle,rounded corners,draw,thick,minimum width=3.2cm,minimum height=1cm,align=center,font=\small},
+  arrow/.style={-{Stealth},thick}
+]
+\node[state,fill=green!12] (online) at (0,0) {Online Mode\\API + ML + LLM};
+\node[state,fill=yellow!20] (degraded) at (5,0) {Degraded Mode\\ML or cached data};
+\node[state,fill=red!10] (offline) at (10,0) {Offline Mode\\Knowledge base + queue};
+\node[state,fill=blue!10] (sync) at (5,-2.4) {Reconnect Sync\\Flush pending queue};
+
+\draw[arrow] (online) -- node[above,font=\scriptsize] {LLM timeout or weak network} (degraded);
+\draw[arrow] (degraded) -- node[above,font=\scriptsize] {Network lost} (offline);
+\draw[arrow] (offline) -- node[right,font=\scriptsize] {Network restored} (sync);
+\draw[arrow] (sync) -- node[left,font=\scriptsize] {Queue processed} (online);
+\draw[arrow,bend left=25] (online) to node[below,font=\scriptsize] {No network} (offline);
+\draw[arrow,bend left=25] (degraded) to node[below,font=\scriptsize] {Service restored} (online);
+\end{tikzpicture}
+}
+\caption{Connectivity state transition model used by the offline-first layer.}
+\label{fig:state}
+\end{figure}
+
+\singlespacing
+
+\chapter{Algorithms and Mathematical Models}
+\doublespacing
+
+\section{The HARVEST Framework}
+
+The \FrameworkName\ framework is the orchestration pattern used by the system. It is not one model. It is the way the system collects context, runs the relevant model or rule engine, enriches the answer when possible, and still returns usable advice when a service fails.
+
+\begin{algorithm}[htbp]
+\caption{HARVEST Advisory Pipeline}
+\label{alg:harvest}
+\small
+\begin{algorithmic}[1]
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\REQUIRE User request $u$ containing crop, soil type, location, language, optional image or audio
+\ENSURE Advisory response $\mathcal{R}$ with confidence, source, and action guidance
+\STATE Resolve language preference and user profile
+\STATE Fetch GPS based state using bounding box lookup
+\STATE Fetch current and 7-day weather from Open-Meteo
+\STATE Lookup soil NPK and pH from selected soil type
+\STATE Compute current season using calendar logic
+\IF{request type is crop recommendation}
+  \STATE Run Random Forest crop classifier on $[N,P,K,T,H,pH,R]$
+  \STATE Rank top five crops by probability
+\ELSIF{request type is disease detection}
+  \STATE Preprocess image and run Vision Transformer inference
+  \STATE Return top five disease labels and confidence values
+\ELSIF{request type is yield prediction}
+  \STATE Encode state, district, crop, soil, weather, and year features
+  \STATE Predict log production and convert using $\exp(\hat{y}) - 1$
+\ELSIF{request type is irrigation}
+  \STATE Compute ET$_0$, ET$_c$, effective rainfall, and water requirement
+\ELSIF{request type is action plan}
+  \STATE Compute crop stage, irrigation need, rainy days, and spray-safe windows
+\ENDIF
+\IF{LLM service is available and the module requires reasoning}
+  \STATE Generate localized explanation, advisory, or weekly plan
+  \STATE Set response source to ML plus AI advisory
+\ELSIF{ML output is available}
+  \STATE Format ML or rule output with static explanation
+  \STATE Set response source to model or rule fallback
+\ELSE
+  \STATE Return cached data, offline knowledge, or static safe fallback
+\ENDIF
+\RETURN $\mathcal{R}$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Crop Recommendation Model}
+
+The crop recommendation model predicts suitable crops from a 7-dimensional input vector:
+
+\begin{equation}
+\mathbf{x}_{crop} = [N,\ P,\ K,\ T,\ H,\ pH,\ R]^T
+\end{equation}
+
+Here $N$, $P$, and $K$ are soil nutrient values, $T$ is temperature, $H$ is humidity, $pH$ is soil pH, and $R$ is rainfall. In the deployed system, NPK and pH are derived from the soil profile lookup table, while temperature, humidity, and rainfall come from Open-Meteo.
+
+\begin{table}[H]
+\centering
+\caption{Crop Recommendation Dataset and Model Details}
+\label{tab:croprec}
+\begin{tabular}{p{5cm}p{8.5cm}}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Dataset size & 2,200 rows \\
+Features & N, P, K, temperature, humidity, pH, rainfall \\
+Target & Crop label \\
+Crop classes & 22 crops \\
+Train-test split & 80\% training and 20\% testing with stratification \\
+Model & Tuned Random Forest classifier \\
+Best parameters & 250 estimators, max depth 12, sqrt max features, min split 2, min leaf 1 \\
+Test accuracy & 99.318\% \\
+Macro F1 & 0.99318 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Crop Recommender Cross-Validation Comparison}
+\label{tab:crop_models}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Mean CV Accuracy} & \textbf{Mean CV Macro F1} \\
+\midrule
+Random Forest & 0.99375 & 0.99371 \\
+Extra Trees & 0.99205 & 0.99198 \\
+SVM with RBF kernel & 0.98239 & 0.98221 \\
+Logistic Regression & 0.96818 & 0.96782 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar,
+  width=12cm,
+  height=7cm,
+  xlabel={Feature importance},
+  symbolic y coords={pH,Temperature,Nitrogen,Phosphorus,Potassium,Humidity,Rainfall},
+  ytick=data,
+  xmin=0,
+  xmax=0.25,
+  nodes near coords,
+  nodes near coords align={horizontal},
+  bar width=0.35cm,
+  enlarge y limits=0.15
+]
+\addplot[fill=green!55] coordinates {
+  (0.0529,pH)
+  (0.0731,Temperature)
+  (0.1072,Nitrogen)
+  (0.1521,Phosphorus)
+  (0.1800,Potassium)
+  (0.2139,Humidity)
+  (0.2208,Rainfall)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Feature importance of the tuned crop recommendation model.}
+\label{fig:crop_importance}
+\end{figure}
+
+\section{Yield Prediction Model}
+
+The yield training pipeline uses a district-level Indian crop production dataset with 27,303 rows and 21 columns. It covers 29 states, 475 districts, 19 crop groups, and crop years from 2021-22 to 2023-24. The training feature vector is:
+
+\begin{equation}
+\mathbf{x}_{yield} =
+[S_e,\ D_e,\ C_e,\ \phi,\ \lambda,\ N,\ P,\ K,\ OC,\ pH,\ T,\ H,\ R,\ Sun,\ Y]^T
+\end{equation}
+
+where $S_e$, $D_e$, and $C_e$ are encoded state, district, and crop values; $\phi$ and $\lambda$ are latitude and longitude; $OC$ is organic carbon; $Sun$ is sunshine hours; and $Y$ is the numeric year.
+
+The production target was highly right-skewed. The notebook recorded target skewness of 4.28 before transformation and 0.99 after transformation. The model therefore uses:
+
+\begin{equation}
+\tilde{y} = \log(1 + y)
+\end{equation}
+
+and converts predictions back using:
+
+\begin{equation}
+\hat{y} = e^{\hat{\tilde{y}}} - 1
+\end{equation}
+
+The deployed endpoint uses the saved model with live weather, soil lookup, crop encoding, district/state encoding, and current year. Since the ML output represents macro district production, the API also requests an LLM-estimated per-hectare value for user-facing yield guidance. This distinction is important because a farmer expects land-area yield, while the historical dataset is district production data.
+
+\begin{table}[H]
+\centering
+\caption{Yield Model Comparison on Log-Transformed Target}
+\label{tab:yield_models}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{$R^2$} & \textbf{Adjusted $R^2$} & \textbf{RMSE} & \textbf{MAE} \\
+\midrule
+Random Forest baseline & 0.9410 & 0.9409 & 0.5706 & 0.2910 \\
+XGBoost tuned & 0.9357 & 0.9356 & 0.5957 & 0.3707 \\
+Random Forest tuned & 0.9331 & 0.9329 & 0.6079 & 0.3300 \\
+Decision Tree tuned & 0.9203 & 0.9201 & 0.6635 & 0.2544 \\
+Decision Tree baseline & 0.9190 & 0.9189 & 0.6686 & 0.2299 \\
+LightGBM tuned & 0.9169 & 0.9167 & 0.6776 & 0.4595 \\
+Linear Regression & 0.0677 & 0.0657 & 2.2691 & 1.9432 \\
+SVR fixed & -0.1174 & -0.1198 & 2.4842 & 1.6225 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{SHAP Interpretability}
+
+SHAP analysis was run on 500 test samples. The top feature was crop encoding, followed by latitude, soil pH, longitude, and temperature-related features. This is agronomically reasonable because district production strongly depends on crop type and geography.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar,
+  width=12cm,
+  height=7cm,
+  xlabel={Mean absolute SHAP value},
+  symbolic y coords={Temperature,Humidity,Sunshine,Longitude,Soil pH,Latitude,Crop Encoded},
+  ytick=data,
+  xmin=0,
+  xmax=1.6,
+  nodes near coords,
+  nodes near coords align={horizontal},
+  bar width=0.35cm,
+  enlarge y limits=0.14
+]
+\addplot[fill=blue!55] coordinates {
+  (0.1159,Temperature)
+  (0.1190,Humidity)
+  (0.1270,Sunshine)
+  (0.1750,Longitude)
+  (0.2163,Soil pH)
+  (0.2246,Latitude)
+  (1.4561,Crop Encoded)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{SHAP feature importance for the yield model.}
+\label{fig:shap}
+\end{figure}
+
+\section{Plant Disease Detection}
+
+The disease detection backend loads \texttt{wambugu71/crop\_leaf\_diseases\_vit} from Hugging Face. The API accepts an uploaded image, converts it to RGB, preprocesses it using \texttt{ViTImageProcessor}, performs inference with \texttt{ViTForImageClassification}, applies softmax, and returns the top five predictions.
+
+For an image $I$, the transformer pipeline can be summarized as:
+
+\begin{equation}
+\mathbf{z}_0 = [\mathbf{x}_{cls};\ \mathbf{x}_{p}^{1}\mathbf{E};\ \ldots;\ \mathbf{x}_{p}^{N}\mathbf{E}] + \mathbf{E}_{pos}
+\end{equation}
+
+\begin{equation}
+\hat{y}_{disease} = \text{softmax}(\text{MLP}(\mathbf{z}_{L}^{0}))
+\end{equation}
+
+The system returns a ranked prediction list instead of only a single label. This is important in real field conditions where image quality, lighting, and disease similarity can make the top class uncertain.
+
+\section{Irrigation Model}
+
+The irrigation module uses the Hargreaves equation for ET$_0$ estimation:
+
+\begin{equation}
+ET_0 = 0.0023 \times R_a \times (T_{mean} + 17.8) \times \sqrt{T_{max} - T_{min}}
+\end{equation}
+
+The deployed code approximates extraterrestrial radiation $R_a$ from latitude:
+
+\begin{equation}
+R_a = 15 + 5\cos(|lat| \times \pi / 180)
+\end{equation}
+
+Crop evapotranspiration is:
+
+\begin{equation}
+ET_c = K_c \times ET_0
+\end{equation}
+
+Effective rainfall is estimated as 80\% of observed rainfall:
+
+\begin{equation}
+P_{eff} = 0.8P
+\end{equation}
+
+Net irrigation need is:
+
+\begin{equation}
+I_{net} = \max(ET_c - P_{eff},\ 0)
+\end{equation}
+
+For a land area $A$ in hectares, water need in liters is:
+
+\begin{equation}
+Water = I_{net} \times A \times 10000 / 1000
+\end{equation}
+
+\section{Voice Intent Model}
+
+The voice flow has three stages:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item The mobile app records audio using Expo AV.
+  \item The backend sends the audio to Groq Whisper Large V3 Turbo for transcription.
+  \item LLaMA 3.3 70B classifies intent and returns a navigation target such as Weather, DiseaseDetection, Fasalein, YieldPrediction, IrrigationDashboard, MandiPrices, ActionPlan, GovSchemes, AgriKnowledge, or AIChat.
+\end{enumerate}
+
+The output is structured JSON containing transcript, intent, navigation target, and response text. This makes the voice assistant usable for screen navigation as well as simple question handling.
+
+\section{Action Plan Rules}
+
+The action plan module first computes crop stage from sowing date. Each crop has approximate durations for seedling, vegetative, flowering, and maturity stages. The system then combines crop stage with 7-day weather, rain probability, wind, humidity, temperature, and ET$_0$ based irrigation need. It avoids spray tasks on rainy or high-wind days and adds monitoring tasks during high humidity or disease-prone stages.
+
+\singlespacing
+
+\chapter{Implementation}
+\doublespacing
+
+\section{Technology Stack}
+
+\begin{table}[H]
+\centering
+\caption{Technology Stack}
+\label{tab:stack}
+\begin{tabular}{p{4cm}p{9.5cm}}
+\toprule
+\textbf{Layer} & \textbf{Technologies} \\
+\midrule
+Mobile frontend & React Native 0.81, Expo 54, TypeScript, React Navigation, AsyncStorage, NetInfo, Expo Location, Expo Image Picker, Expo AV, Expo Speech \\
+Backend & Python, FastAPI, Uvicorn, Pydantic, SQLModel, httpx, dotenv \\
+Machine learning & scikit-learn, joblib, NumPy, PyTorch, Hugging Face Transformers \\
+Database & PostgreSQL through Neon, SQLModel ORM \\
+External APIs & Open-Meteo, Groq LLaMA 3.3 70B, Groq Whisper Large V3 Turbo \\
+Visualization and report & LaTeX, TikZ, pgfplots, booktabs \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Project Structure}
+
+\begin{verbatim}
+smart-india-harvest/
+|-- backend/
+|   |-- main.py
+|   |-- database.py
+|   |-- models.py
+|   |-- crop_recommendation_model.joblib
+|   |-- RandomForest.pkl
+|   |-- yield_model/
+|       |-- best_model.pkl
+|       |-- category_mappings.pkl
+|       |-- model_metadata.pkl
+|       |-- scaler.pkl
+|
+|-- crop_rec/
+|   |-- data/Crop_recommendation.csv
+|   |-- reports/metrics.json
+|   |-- reports/feature_importance.csv
+|   |-- src/train_crop_model.py
+|
+|-- crop prediction/
+|   |-- India_Districts_Crop_Production_Processed.csv
+|   |-- saved_model/
+|   |-- images/
+|
+|-- mobile-app/
+|   |-- App.tsx
+|   |-- src/navigation/AppNavigator.tsx
+|   |-- src/screens/
+|   |-- src/services/
+|   |-- src/context/
+|   |-- src/components/
+|
+|-- report.tex
+|-- README.md
+\end{verbatim}
+
+\section{Backend Implementation}
+
+The backend is implemented in \texttt{backend/main.py}. It uses FastAPI with CORS enabled for mobile app access. On startup, it creates database tables and loads ML models. The disease model is loaded through Hugging Face Transformers. The crop recommendation model is loaded from a joblib artifact containing the trained pipeline, feature names, and crop labels. The yield model and category mappings are loaded from the \texttt{yield\_model} directory.
+
+\subsection{Context Utilities}
+
+The backend contains helper functions for:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Fetching current and daily weather from Open-Meteo.
+  \item Mapping latitude and longitude to Indian states using bounding boxes.
+  \item Determining the current crop season.
+  \item Calling Groq LLM endpoints.
+  \item Parsing JSON responses from LLM output.
+  \item Computing ET$_0$.
+  \item Computing crop stage from sowing date.
+\end{itemize}
+
+\subsection{Soil Lookup}
+
+Eight soil profiles are stored in the backend. Each profile contains reference NPK and pH values:
+
+\begin{table}[H]
+\centering
+\caption{Soil Profile Lookup Table}
+\label{tab:soil}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Soil Type} & \textbf{N} & \textbf{P} & \textbf{K} & \textbf{pH} \\
+\midrule
+Alluvial & 80 & 40 & 45 & 7.0 \\
+Black & 55 & 25 & 60 & 7.8 \\
+Red & 40 & 20 & 30 & 6.0 \\
+Laterite & 35 & 15 & 25 & 5.5 \\
+Sandy & 25 & 10 & 15 & 6.5 \\
+Clay & 70 & 35 & 55 & 7.5 \\
+Loamy & 75 & 42 & 50 & 6.8 \\
+Saline & 30 & 12 & 20 & 8.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Mobile App Implementation}
+
+The mobile application is organized into screens, services, context providers, components, and navigation. The app uses \texttt{AppNavigator.tsx} to define routes such as LanguageSelection, SignUp, Login, BiometricSetup, Home, Weather, AIChat, DiseaseDetection, Onboarding, Fasalein, SuccessStories, Profile, AgriKnowledge, GovSchemes, IrrigationDashboard, YieldPrediction, MandiPrices, and ActionPlan.
+
+\subsection{Services}
+
+The mobile service layer keeps network and device logic separate from screens:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{diseaseService.ts} uploads images and handles offline queuing.
+  \item \texttt{voiceService.ts} records audio, sends voice commands, and speaks text.
+  \item \texttt{weatherService.ts} handles weather requests.
+  \item \texttt{translationService.ts} fetches and caches UI translations.
+  \item \texttt{offlineStorage.ts} provides TTL-based cache helpers.
+  \item \texttt{offlineQueue.ts} queues disease detection images and processes them after reconnection.
+  \item \texttt{offlineKnowledgeBase.ts} provides trilingual farming guidance without internet.
+  \item \texttt{networkService.ts} monitors connectivity using NetInfo.
+\end{itemize}
+
+\subsection{Translation and Voice Context}
+
+The translation provider stores the selected language and exposes a \texttt{t()} function for screens. The voice context provides global voice assistant state, making the voice button available across the app.
+
+\section{Disease Detection Sequence}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  participant/.style={rectangle,draw,fill=blue!12,minimum width=2.6cm,minimum height=0.75cm,align=center,font=\small\bfseries},
+  life/.style={thick,dashed},
+  msg/.style={-{Stealth},thick}
+]
+\node[participant] (app) at (0,0) {Mobile App};
+\node[participant] (api) at (4,0) {FastAPI};
+\node[participant] (vit) at (8,0) {ViT Model};
+\node[participant] (local) at (12,0) {Local Disease Info};
+
+\draw[life] (app) -- (0,-6.8);
+\draw[life] (api) -- (4,-6.8);
+\draw[life] (vit) -- (8,-6.8);
+\draw[life] (local) -- (12,-6.8);
+
+\draw[msg] (0,-1) -- (4,-1) node[midway,above,font=\scriptsize] {POST /api/detect-disease with leaf image};
+\draw[msg] (4,-2) -- (8,-2) node[midway,above,font=\scriptsize] {Preprocess and run inference};
+\draw[msg] (8,-3) -- (4,-3) node[midway,above,font=\scriptsize] {Top 5 labels and probabilities};
+\draw[msg] (4,-4) -- (0,-4) node[midway,above,font=\scriptsize] {JSON prediction response};
+\draw[msg] (0,-5) -- (12,-5) node[midway,above,font=\scriptsize] {Map label to multilingual remedy};
+\draw[msg] (12,-6) -- (0,-6) node[midway,above,font=\scriptsize] {Description, remedy, and TTS text};
+\end{tikzpicture}
+}
+\caption{Disease detection sequence implemented in the app and backend.}
+\label{fig:disease_sequence}
+\end{figure}
+
+\section{Prompting and Structured Output}
+
+LLM calls are designed to return JSON whenever the response is consumed by the app. For example, crop recommendation enrichment returns a list of objects containing crop, reason, market demand, estimated price, and season match. Action plans return weekly summary and daily task lists. Voice commands return intent, navigation target, and response text.
+
+The backend includes a parser that first attempts direct JSON parsing and then extracts a JSON object or array if the LLM includes extra text. This is a practical reliability layer for production-style LLM use.
+
+\section{Offline Implementation}
+
+The offline layer is one of the strongest implementation features of the project. It contains:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{TTL cache:} API responses can be saved with expiry and reused later.
+  \item \textbf{Disease image queue:} If the farmer captures a leaf image offline, the app stores the image and queues it for later processing.
+  \item \textbf{Reconnect sync:} When connectivity returns, queued items are processed automatically.
+  \item \textbf{Knowledge base:} Common crop, pest, soil, irrigation, weather, and government scheme answers are stored locally in English, Hindi, and Punjabi.
+  \item \textbf{Offline banner:} The UI can inform the user when the app is operating without network connectivity.
+\end{itemize}
+
+\section{Error Handling and Fallbacks}
+
+The system uses layered fallbacks:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Try the best available path, usually ML plus LLM reasoning.
+  \item If LLM fails, return ML output with static explanation.
+  \item If ML is unavailable, use LLM-only or rule-based output where appropriate.
+  \item If the network is unavailable, use cache, queue, or offline knowledge.
+\end{enumerate}
+
+This keeps the user experience from collapsing into a blank error screen.
+
+\singlespacing
+
+\chapter{Testing, Output Screens, and Results}
+\doublespacing
+
+\section{Testing Strategy}
+
+The project was tested at four levels:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Model testing:} Evaluate crop recommendation and yield models using held-out data and saved metrics.
+  \item \textbf{API testing:} Validate endpoint request and response shapes for farm profile, disease, crop recommendation, yield, irrigation, voice, and action plan flows.
+  \item \textbf{Mobile workflow testing:} Navigate through onboarding, dashboard, disease detection, crop management, weather, irrigation, yield, mandi, action plan, and profile screens.
+  \item \textbf{Offline testing:} Disable connectivity, verify local knowledge access, cache reads, offline banner behavior, and disease image queueing.
+\end{itemize}
+
+\section{Model Results}
+
+The crop recommendation model achieved strong classification performance. The yield model comparison showed that Random Forest baseline performed best on $R^2$ and RMSE for the log-transformed production target.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  width=12cm,
+  height=7cm,
+  ylabel={Score in percent},
+  symbolic x coords={RF Crop,Extra Trees,SVM,Logistic,RF Yield,XGBoost Yield,DT Yield,LightGBM Yield},
+  xtick=data,
+  x tick label style={rotate=35,anchor=east,font=\scriptsize},
+  ymin=80,
+  ymax=101,
+  nodes near coords,
+  nodes near coords align={vertical},
+  bar width=12pt
+]
+\addplot[fill=green!50] coordinates {
+  (RF Crop,99.3)
+  (Extra Trees,99.2)
+  (SVM,98.2)
+  (Logistic,96.8)
+  (RF Yield,94.1)
+  (XGBoost Yield,93.6)
+  (DT Yield,92.0)
+  (LightGBM Yield,91.7)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Model performance comparison. Crop values show accuracy, yield values show $R^2$ scaled to percent.}
+\label{fig:performance}
+\end{figure}
+
+\section{Latency and User Experience Results}
+
+Exact latency varies by device, network, model warm-up, and Groq response time. Based on local implementation behavior and expected endpoint paths, the following latency categories are realistic for the prototype:
+
+\begin{table}[H]
+\centering
+\caption{Expected Runtime Behavior by Module}
+\label{tab:latency}
+\small
+\begin{tabular}{p{3.5cm}p{4cm}p{5.6cm}}
+\toprule
+\textbf{Module} & \textbf{Runtime Type} & \textbf{User Experience} \\
+\midrule
+Crop recommendation & Fast tabular ML plus optional LLM & Interactive, shows ranked crops and reasoning \\
+Disease detection & Image upload plus ViT inference & Requires loading state, returns top labels and confidence \\
+Yield prediction & Tabular ML plus LLM per-hectare estimate & Interactive, depends on weather and LLM availability \\
+Irrigation dashboard & Computation plus optional LLM text & Fast, mostly deterministic rules and weather data \\
+Voice assistant & Audio upload, ASR, intent LLM & Requires recording and processing states \\
+Action plan & Rules plus optional LLM planning & Medium latency, returns structured 7-day plan \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Output Screen Coverage}
+
+The current mobile application includes the following major screens:
+
+\begin{table}[H]
+\centering
+\caption{Implemented Mobile Screens}
+\label{tab:screens}
+\small
+\begin{tabular}{p{4cm}p{9.5cm}}
+\toprule
+\textbf{Screen} & \textbf{Purpose} \\
+\midrule
+LanguageSelection & Select English, Hindi, or Punjabi \\
+SignUp and Login & User account and session entry \\
+BiometricSetup & Fingerprint or face authentication setup \\
+Onboarding & Collect land, soil, previous crop, and current farm status \\
+Home & Dashboard and quick navigation \\
+Weather & Current, hourly, and 7-day weather details \\
+DiseaseDetection & Camera or gallery image disease diagnosis \\
+Fasalein & Crop management and crop recommendations \\
+AIChat & Conversational Krishi Mitra assistant \\
+YieldPrediction & Yield estimate and improvement tips \\
+IrrigationDashboard & Soil moisture estimate, water need, schedule, and savings \\
+MandiPrices & Regional commodity price guidance \\
+ActionPlan & 7-day crop task plan \\
+GovSchemes & Central and state scheme information \\
+AgriKnowledge & Offline and online farming knowledge \\
+SuccessStories & Farmer story feed and submission \\
+Profile & Farm profile, settings, and language access \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Representative User Workflow}
+
+A typical user journey is:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item The farmer selects Hindi or Punjabi during first launch.
+  \item The farmer creates an account and completes onboarding with land size and soil type.
+  \item The home screen shows the current location and weather summary.
+  \item The farmer opens crop management and receives top crop suggestions generated from soil and live weather.
+  \item The farmer captures a leaf image in disease detection and receives a confidence-ranked disease result.
+  \item The farmer checks irrigation, where the app recommends water volume and best irrigation time.
+  \item The farmer opens the action plan and receives daily tasks for the next week.
+  \item If the network fails, cached data and offline knowledge remain available.
+\end{enumerate}
+
+\section{Evaluation Against Objectives}
+
+\begin{table}[H]
+\centering
+\caption{Objective Completion Summary}
+\label{tab:objective_summary}
+\begin{tabular}{p{7cm}p{2.4cm}p{4cm}}
+\toprule
+\textbf{Objective} & \textbf{Status} & \textbf{Evidence} \\
+\midrule
+Mobile farmer app & Completed & React Native app with 18 routes \\
+FastAPI backend & Completed & Implemented endpoints in \texttt{main.py} \\
+Crop recommendation ML & Completed & 99.3\% test accuracy \\
+Yield prediction ML & Completed & $R^2 = 0.9410$ training result \\
+Disease detection & Completed & ViT model integration \\
+Smart irrigation & Completed & ET$_0$ and K$_c$ computation \\
+Voice assistant & Completed & Whisper and LLM intent endpoint \\
+Offline support & Completed & Cache, queue, and knowledge base \\
+Multilingual support & Completed & English, Hindi, and Punjabi \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\singlespacing
+
+\chapter{Deployment, Management, and Impact}
+\doublespacing
+
+\section{Deployment Requirements}
+
+\subsection{Backend}
+
+The backend requires Python, dependencies from \texttt{requirements.txt}, a PostgreSQL connection string, and a Groq API key. Environment variables should be stored in a local \texttt{.env} file:
+
+\begin{verbatim}
+DATABASE_URL=postgresql://user:password@host/database
+GROQ_API_KEY=your_groq_api_key
+\end{verbatim}
+
+The backend can be started with:
+
+\begin{verbatim}
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+\end{verbatim}
+
+\subsection{Mobile App}
+
+The mobile app requires Node.js, Expo, and dependencies from \texttt{package.json}. The backend IP address is configured in \texttt{src/config.ts}. The Expo development server can be started with:
+
+\begin{verbatim}
+npx expo start --clear
+\end{verbatim}
+
+\section{Risk Analysis}
+
+\begin{table}[H]
+\centering
+\caption{Project Risks and Mitigation}
+\label{tab:risks}
+\small
+\begin{tabular}{p{3.6cm}p{4.6cm}p{4.6cm}}
+\toprule
+\textbf{Risk} & \textbf{Effect} & \textbf{Mitigation} \\
+\midrule
+Weak internet & LLM, weather, and image upload may fail & Cache, offline queue, fallback rules \\
+LLM malformed JSON & App may not parse response & JSON extraction parser and static fallback \\
+Model mismatch & Prediction may be less useful for unseen crops or districts & Confidence display, future retraining, local validation \\
+Incorrect soil lookup & NPK values may not match actual field & Encourage soil test integration in future version \\
+Image quality issues & Disease prediction may be uncertain & Return top five predictions and confidence \\
+API key exposure & Security and billing risk & Use environment variables and avoid hardcoding secrets \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Ethical and Social Considerations}
+
+The system must be presented as an advisory tool, not a guaranteed decision maker. Farmers should not be encouraged to apply chemicals or change crop plans without considering local expert advice, input availability, safety instructions, and government recommendations. Disease remedies should be treated as first-level guidance and validated for local conditions.
+
+The app can improve access to agricultural information for users who are not comfortable with English. However, multilingual support must be tested carefully because literal translation can change meaning in agricultural contexts. The system also needs privacy care because farm profiles, locations, and user activity can be sensitive.
+
+\section{Impact of the Project}
+
+\ProjectName\ has practical value because it joins several everyday farming decisions into one accessible workflow. Its impact can be seen in four areas:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Decision quality:} Crop, irrigation, disease, and yield decisions use data rather than only habit.
+  \item \textbf{Accessibility:} Language and voice support make the app easier for more users.
+  \item \textbf{Continuity:} Offline cache and queue features keep the app useful when connectivity is poor.
+  \item \textbf{Explainability:} Confidence scores and reasoning help users understand why advice is shown.
+\end{itemize}
+
+\section{Maintainability}
+
+The codebase is structured in a way that supports future improvements. Backend logic is centralized in API endpoints and helper functions. Mobile device features are separated into services. Screens are separated by workflow. Offline behavior is handled by dedicated storage, queue, network, and knowledge base services. This makes it easier to add new crops, disease classes, languages, or advisory modules.
+
+\singlespacing
+
+\chapter{Limitations and Future Enhancements}
+\doublespacing
+
+\section{Current Limitations}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Static soil values:} Soil NPK and pH are inferred from soil type lookup. The system does not yet read live soil sensor data or lab reports.
+  \item \textbf{District production vs farm yield:} The yield ML model is trained on macro district production. The app adds LLM-based per-hectare estimation, but a direct farm-level yield dataset would be better.
+  \item \textbf{Vision model domain shift:} Plant disease datasets often contain clean leaf images. Real farm images may have clutter, poor lighting, mixed symptoms, or multiple diseases.
+  \item \textbf{LLM dependency:} High-quality natural language reasoning and voice intent classification require an external API key and network access.
+  \item \textbf{Limited language set:} The app currently focuses on English, Hindi, and Punjabi. India needs more regional languages.
+  \item \textbf{Market data realism:} Mandi price guidance needs integration with official or live commodity price APIs for production deployment.
+  \item \textbf{No full security layer yet:} The current prototype uses simple local session behavior and should be extended with robust authentication for production.
+\end{itemize}
+
+\section{Future Enhancements}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Soil test integration:} Allow farmers to enter lab report values or scan soil health cards.
+  \item \textbf{IoT support:} Add soil moisture, temperature, humidity, and NPK sensors for live field telemetry.
+  \item \textbf{On-device ML:} Convert selected models to TensorFlow Lite or ONNX Runtime for offline inference.
+  \item \textbf{Expanded disease coverage:} Retrain the disease model with field images from Indian crops and local disease classes.
+  \item \textbf{Official market APIs:} Integrate e-NAM or state mandi feeds for real price data.
+  \item \textbf{More languages:} Add Marathi, Bengali, Tamil, Telugu, Gujarati, Kannada, and Odia.
+  \item \textbf{Expert review mode:} Allow KVK or agricultural advisors to review and approve recommendations.
+  \item \textbf{Notification system:} Send alerts for rain, irrigation windows, spray warnings, and harvest reminders.
+  \item \textbf{Farm history analytics:} Track crop cycles, disease history, irrigation use, and production outcomes.
+  \item \textbf{Better authentication:} Add secure backend-based login, role management, and encrypted user data.
+\end{enumerate}
+
+\singlespacing
+
+\chapter{Conclusion}
+\doublespacing
+
+\ProjectName\ successfully demonstrates a complete agricultural decision support system that is broader than a single machine learning model. It combines mobile usability, backend APIs, crop recommendation, disease detection, yield prediction, irrigation scheduling, mandi guidance, action planning, multilingual interaction, voice support, and offline-first behavior into one project.
+
+The project shows that agricultural AI becomes more useful when it is tied to real context. Soil type, GPS location, current season, live weather, crop stage, user language, and land area are all used to shape the advice. The crop recommendation model achieved 99.3\% test accuracy, and the yield modeling pipeline achieved $R^2 = 0.9410$ on the log-transformed target. The irrigation module provides a practical ET$_0$ based method for water planning, and the offline layer ensures that the app remains useful even under poor connectivity.
+
+Most importantly, the system is designed around the farmer's workflow. It does not simply show model output. It turns the output into recommendations, explanations, timings, and action steps. With future work on live soil data, official price APIs, expanded languages, and field-level validation, \SystemName\ can become a stronger foundation for accessible precision agriculture in India.
+
+\singlespacing
+
+\renewcommand\bibname{References}
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{References}
+\singlespacing
+
+\bibitem{fao56}
+R. G. Allen, L. S. Pereira, D. Raes, and M. Smith, \emph{Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements}. FAO Irrigation and Drainage Paper 56, Food and Agriculture Organization, Rome, 1998.
+
+\bibitem{hargreaves}
+G. H. Hargreaves and Z. A. Samani, ``Reference crop evapotranspiration from temperature,'' \emph{Applied Engineering in Agriculture}, vol. 1, no. 2, pp. 96-99, 1985.
+
+\bibitem{vit}
+A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai, T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly, J. Uszkoreit, and N. Houlsby, ``An image is worth 16x16 words: Transformers for image recognition at scale,'' in \emph{International Conference on Learning Representations}, 2021.
+
+\bibitem{plantvillage}
+D. P. Hughes and M. Salathe, ``An open access repository of images on plant health to enable the development of mobile disease diagnostics,'' \emph{arXiv preprint arXiv:1511.08060}, 2015.
+
+\bibitem{rf}
+L. Breiman, ``Random forests,'' \emph{Machine Learning}, vol. 45, pp. 5-32, 2001.
+
+\bibitem{xgboost}
+T. Chen and C. Guestrin, ``XGBoost: A scalable tree boosting system,'' in \emph{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, pp. 785-794, 2016.
+
+\bibitem{lightgbm}
+G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y. Liu, ``LightGBM: A highly efficient gradient boosting decision tree,'' in \emph{Advances in Neural Information Processing Systems}, vol. 30, 2017.
+
+\bibitem{shap}
+S. M. Lundberg and S.-I. Lee, ``A unified approach to interpreting model predictions,'' in \emph{Advances in Neural Information Processing Systems}, vol. 30, 2017.
+
+\bibitem{fastapi}
+S. Ramirez, ``FastAPI framework documentation,'' \url{https://fastapi.tiangolo.com/}, accessed 2025.
+
+\bibitem{expo}
+Expo, ``Expo documentation,'' \url{https://docs.expo.dev/}, accessed 2025.
+
+\bibitem{openmeteo}
+Open-Meteo, ``Open-Meteo weather forecast API,'' \url{https://open-meteo.com/}, accessed 2025.
+
+\bibitem{huggingface}
+Hugging Face, ``Transformers documentation,'' \url{https://huggingface.co/docs/transformers/}, accessed 2025.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,89 @@
+{
+  "dataset": {
+    "source_url": "https://huggingface.co/datasets/Dukuru/crop_pred/resolve/main/Crop_recommendation.csv",
+    "rows": 2200,
+    "features": [
+      "N",
+      "P",
+      "K",
+      "temperature",
+      "humidity",
+      "ph",
+      "rainfall"
+    ],
+    "target": "label",
+    "crop_count": 22,
+    "crops": [
+      "apple",
+      "banana",
+      "blackgram",
+      "chickpea",
+      "coconut",
+      "coffee",
+      "cotton",
+      "grapes",
+      "jute",
+      "kidneybeans",
+      "lentil",
+      "maize",
+      "mango",
+      "mothbeans",
+      "mungbean",
+      "muskmelon",
+      "orange",
+      "papaya",
+      "pigeonpeas",
+      "pomegranate",
+      "rice",
+      "watermelon"
+    ]
+  },
+  "split": {
+    "train_rows": 1760,
+    "test_rows": 440,
+    "test_size": 0.2,
+    "stratified": true,
+    "random_state": 42
+  },
+  "model_comparison": [
+    {
+      "model": "random_forest",
+      "cv_accuracy_mean": 0.99375,
+      "cv_accuracy_std": 0.005508727110700368,
+      "cv_macro_f1_mean": 0.9937136490573764,
+      "cv_macro_f1_std": 0.005550849628890096
+    },
+    {
+      "model": "extra_trees",
+      "cv_accuracy_mean": 0.9920454545454545,
+      "cv_accuracy_std": 0.004887684810819686,
+      "cv_macro_f1_mean": 0.9919841086261219,
+      "cv_macro_f1_std": 0.004987662870045151
+    },
+    {
+      "model": "svm_rbf",
+      "cv_accuracy_mean": 0.9823863636363637,
+      "cv_accuracy_std": 0.0048876848108196655,
+      "cv_macro_f1_mean": 0.9822118168978686,
+      "cv_macro_f1_std": 0.004895491688668094
+    },
+    {
+      "model": "logistic_regression",
+      "cv_accuracy_mean": 0.9681818181818181,
+      "cv_accuracy_std": 0.006577180058403534,
+      "cv_macro_f1_mean": 0.9678236006626216,
+      "cv_macro_f1_std": 0.006765232166249332
+    }
+  ],
+  "best_params": {
+    "model__max_depth": 12,
+    "model__max_features": "sqrt",
+    "model__min_samples_leaf": 1,
+    "model__min_samples_split": 2,
+    "model__n_estimators": 250
+  },
+  "cv_best_macro_f1": 0.9948645714824416,
+  "test_accuracy": 0.9931818181818182,
+  "test_macro_f1": 0.9931775541531639,
+  "test_weighted_f1": 0.9931775541531639
+}
